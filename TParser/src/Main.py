@@ -1,8 +1,8 @@
 import PyPDF2, os, threading, shutil, openpyxl
-from CreateTabularDocument import * 
-from StudentInfo import * 
-from CumulativeInfo import *
-from ParseClasses import *
+from tablecreator.CreateTabularDocument import * 
+from parser.StudentInfo import * 
+from parser.CumulativeInfo import *
+from parser.ParseClasses import *
 
 
 def main():
