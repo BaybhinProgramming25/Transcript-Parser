@@ -1,861 +1,667 @@
 """
-
 This is the primary module that will tackle different parts of the transcript
 
 Each thread is responsible for calling a specific function in this module
 and each function will be responsible for parsing specific information
 and store it in the state variables that are passed 
-
 """
 
 from classes.UniversalClassObject import *
 from classes.MinimalClassObject import *
 from classes.SBCClassObject import * 
-import sys
 
 
-# The purpose of this function is to list the required major courses (i.e lower division courses, upper division courses, and technical courses) and to see if the student has satisfied
-# any particular major require course. If a student has a major required course, then that particular course is put into state dictionary
-# in the form of an Object 
-def majorClassTracker(text, studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCourses, specializeRequiredCourses, specalizeOptionalCourses, mathRequiredCourses):
+def majorClassTracker(text: list[str], studentInformation: dict, upperDivisionCourses: dict, lowerDivisionCourses: dict, technicalCourses: dict, specializeRequiredCourses: dict, specalizeOptionalCourses: dict, mathRequiredCourses: dict):
 
-    # We want our dictionary to hold UpperDivision class objects in the upperDivisonCourse dictionary
-    # and we want our dictionary to hold LowerDivision class objects in the lowerDivisonCourses dictionary
+    requiredLowerDivisonCourses, requiredUpperDivisionCourses = (), ()
+    alternateRequiredCourses, PSYCSECourses, ISEcoursestreatedasCSE, ESTcoursestreatedasCSE, MATcoursesttreatedasCSE, AMScoursestreatedasCSE = {}, {}, {}, {}, {}, {}
 
-    requiredLowerDivisonCourses, requiredUpperDivisionCourses, alternateRequiredCourses, alternateOptionalCourses, ISEcoursestreatedasCSE, ESTcoursestreatedasCSE, MATcoursesttreatedasCSE, AMScoursestreatedasCSE = (), (), {}, {}, {}, {}, {}, {}
-
-    if studentInformation['Major'] == "CSE": # We are looking at a CSE student
+    # Probaby want to define my constants somewhere else so we will come back here later 
+    if studentInformation['Major'] == "CSE": # CSE Student
 
         requiredLowerDivisonCourses = ("114", "214", "215", "216", "220")
         requiredUpperDivisionCourses = ("303", "312", "300", "310", "316", "320", "373", "416")
-        alternateOptionalCourses = {"PSY": ("260", "366", "368", "369", "384")} # Optional Specialization Courses
-        ISEcoursestreatedasCSE = {"ISE": ("300", "301", "311", "312", "323", "332", "333", "334", "337", "364")} # So that these ISE courses can also be used as elective credit
-        ESTcoursestreatedasCSE = {"EST": ("323")}
-        MATcoursesttreatedasCSE = {"MAT": ("371", "373")}
-        AMScoursestreatedasCSE = {"AMS": ("345")}
 
+        # We need to consider these following courses 
+        PSYCSECourses = ("260", "366", "368", "369", "384") 
+        ISEcoursestreatedasCSE = ("300", "301", "311", "312", "323", "332", "333", "334", "337", "364") 
+        ESTcoursestreatedasCSE = ("323")
+        MATcoursesttreatedasCSE = ("371", "373")
+        AMScoursestreatedasCSE = ("345")
 
-    elif studentInformation['Major'] == "ISE": # We are looking at ISE student
+    else: # ISE Student
+
         requiredLowerDivisonCourses = ("114", "214", "218")
-        requiredUpperDivisionCourses = ("300", "305", "316", "320" "312") # We also need to consider the alternatives for some of the classes
-        alternateRequiredCourses =  {"CSE": ("215", "311", "331", "323", "337", "370", "377"), # Courses for the ISE specializations
-                                    "BUS": ("215", "220", "294", "330", "331", "346", "348", "353", "355", "356", "393"), 
-                                    "ECO": ("108", "326", "327", "345", "348", "389"), 
-                                    "ESE": ("201", "442"), 
-                                    "ACC": ("210", "214"), 
-                                    "EST": ("201", "202", "304", "305", "310", "320", "323", "325", "326", "327", "364", "391", "392", "393", "421"), 
-                                    "POL": ("319", "359", "364"), 
-                                    "SOC": ("381"), 
-                                    "ISE": ("311", "321", "323", "331", "337", "340", "390", "391", "475", "488"),
-                                    "AMS": ("311", "315", "316", "318", "320", "341", "394", "441"),
-                                    "HAN": ("200", "202"),
-                                    "PSY": ("103"),
-                                    "BME": ("205"),
-                                    "BCP": ("405"),
-                                    "BIO": ("201", "203")}
-    semesterText = ""
-    semesterYear = ""
+        requiredUpperDivisionCourses = ("300", "305", "316", "320" "312") 
+
+        alternateRequiredCourses =  {
+            "CSE": ("215", "311", "331", "323", "337", "370", "377"), # Courses for the ISE specializations
+            "BUS": ("215", "220", "294", "330", "331", "346", "348", "353", "355", "356", "393"), 
+            "ECO": ("108", "326", "327", "345", "348", "389"), 
+            "ESE": ("201", "442"), 
+            "ACC": ("210", "214"), 
+            "EST": ("201", "202", "304", "305", "310", "320", "323", "325", "326", "327", "364", "391", "392", "393", "421"), 
+            "POL": ("319", "359", "364"), 
+            "SOC": ("381"), 
+            "ISE": ("311", "321", "323", "331", "337", "340", "390", "391", "475", "488"),
+            "AMS": ("311", "315", "316", "318", "320", "341", "394", "441"),
+            "HAN": ("200", "202"),
+            "PSY": ("103"),
+            "BME": ("205"),
+            "BCP": ("405"),
+            "BIO": ("201", "203")
+        }
+
+    # Begin parsing     
+    semesterText, semesterYear = "", ""
+    list_of_seasons = ["Spring", "Summer", "Winter", "Fall"]
+
     for lineOfInformation in text:
+
         modifiedLine = lineOfInformation.replace(" ", "")
-        if "TermGPA" in modifiedLine: # Reset the semesterText and semesterYear strings 
-            semesterText = ""
-            semesterYear = ""
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" not in modifiedLine):
-            index = 0
-            while not (modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                if "Fall" == semesterText or "Winter" == semesterText or "Summer" == semesterText or "Winter" == semesterText: break
-                semesterText += modifiedLine[index]
-                index += 1
-            while (index != len(modifiedLine) and modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                semesterYear += modifiedLine[index]
-                index += 1
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" in modifiedLine) and (semesterText == "") and (semesterYear == ""):
-            springIndex = modifiedLine.find("Spring")
-            fallIndex = modifiedLine.find("Fall")
-            winterIndex = modifiedLine.find("Winter")
-            summerIndex = modifiedLine.find("Summer")
-            if springIndex >= 0:
-                semesterText = "Spring"
-            elif fallIndex >= 0:
-                semesterText = "Fall"
-            elif winterIndex >= 0:
-                semesterText = "Winter"
-            elif summerIndex >= 0:
-                semesterText = "Summer"
-            findFirstCharacter = modifiedLine.find("/")
-            stringAfter = modifiedLine[findFirstCharacter+1::]
-            findSecondCharacter = stringAfter.find("/")
-            stringAfterSecond = stringAfter[findSecondCharacter+1::]
-            index = 0
-            while (stringAfterSecond[index] >= '0' and stringAfterSecond[index] <= '9'):
-                if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                semesterYear += stringAfterSecond[index]
-                index += 1
+
+        if "TermGPA" in modifiedLine: semesterText, semesterYear = "", ""
+        
+        if not semesterText and not semesterYear:
+            for season in list_of_seasons:
+                if season in modifiedLine and "Session" in modifiedLine:
+                    semesterText = season 
+                    requirement_term_string = studentInformation['Requirement Term']
+                    requirement_term_year = requirement_term_string[requirement_term_string.index(' ')+1:]
+
+                    for _ in range(1, 11, 1): # We run this loop 10 times to check if one of the years exist
+                        if requirement_term_year in modifiedLine:
+                            semesterYear = requirement_term_year
+                        else:
+                            requirement_term_year = str(int(requirement_term_year) + 1)
+                
         if "CSE" in modifiedLine and studentInformation['Major'] == "CSE":
 
-            indexLocation = modifiedLine.index("CSE") + 3
-            classNumber = ""
-            while len(classNumber) != 3:
-                classNumber += modifiedLine[indexLocation]
-                indexLocation += 1
-            if classNumber.isdigit():
+            classNumber = modifiedLine[3:6]
+
+            uncounted_courses = ["301", "475", "495", "496"]
+            possibly_counted = ["487", "488"]
+
+            if classNumber.isdigit(): 
+
                 if classNumber == "101": continue # We do not count this 
+
                 elif classNumber in requiredLowerDivisonCourses:
-                    createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, lowerDivisionCourses)
+                    createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, lowerDivisionCourses)
                 elif classNumber in requiredUpperDivisionCourses:
-                    createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, upperDivisionCourses)
-                else: # We are looking at a technical course 
-                    if classNumber == "495" or classNumber == "496" or classNumber == "475" or classNumber == "301": continue # Won't be counted for credits
-                    if (classNumber == "487" and '487' in technicalCourses) or (classNumber == "488" and '488' in technicalCourses): continue # We can only use the class once as a technical elective 
-                    createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, technicalCourses) 
-            else: sys.exit("Trouble reading data from file.")
+                    createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, upperDivisionCourses)
+                else: 
+                    if (classNumber in uncounted_courses) or (classNumber in possibly_counted and classNumber in technicalCourses): continue 
+                    createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, technicalCourses) 
+
         elif "CSE" not in modifiedLine and studentInformation['Major'] == "CSE": # Note: We don't allow ALL ISE courses as CSE technical electives
+            
             classDescription = modifiedLine[0:3]
-            classTitle = classDescription
-            # More to be implemented here, AMS 345 for example
-            indexLocation = modifiedLine.index(classDescription) + 3
-            classNumber = ""
-            if classDescription in alternateOptionalCourses: # We are most probably looking at a PSY course 
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
-                if classNumber.isdigit():
-                    tupleClass = alternateOptionalCourses[classDescription]
-                    if classNumber in tupleClass: # PSY course that counts as specialization 
-                        createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, specalizeOptionalCourses)
-                    # Discard any other PSY Courss
-                else: sys.exit("Trouble reading data from file.")
-            elif classDescription in ISEcoursestreatedasCSE:
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
-                if classNumber.isdigit():
-                    tupleClass = ISEcoursestreatedasCSE[classDescription]
-                    if classNumber in tupleClass: # ISE course counts as technical elective
+            classNumber = modifiedLine[3:6]
+
+            if classDescription == "PSY": # We are most probably looking at a PSY course 
+                if classNumber.isdigit() and classNumber in PSYCSECourses:
+                        createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, specalizeOptionalCourses)
+            
+
+            elif classDescription == "ISE":
+                if classNumber.isdigit() and classNumber in ISEcoursestreatedasCSE:
                         if classNumber == "300" or classNumber == "312":
-                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, upperDivisionCourses) # Thread as upper division required course
+                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, upperDivisionCourses) 
                         elif classNumber != "301": # Don't count "CSE/ISE 301 as a technical course"
-                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, technicalCourses)
-                    # Discard any other ISE courses 
-                else: sys.exit("Trouble reading data from file.")
-            elif classDescription in ESTcoursestreatedasCSE:
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
-                if classNumber.isdigit():
-                    tupleClass = ESTcoursestreatedasCSE[classDescription]
+                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, technicalCourses)
+
+            elif classDescription == "EST":
+                if classNumber.isdigit() and classNumber in ESTcoursestreatedasCSE:
                     if classNumber in tupleClass:
-                        createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, technicalCourses)
-                    # Discard any other EST courses
-                else: sys.exit("Trouble reading data from file.")
-            elif classDescription in MATcoursesttreatedasCSE:
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
-                if classNumber.isdigit():
-                    tupleClass = MATcoursesttreatedasCSE[classDescription]
-                    if classNumber in tupleClass: # ISE course counts as technical elective
-                        if classNumber == "373": # Counts as a major course (MAT 373 also treated as CSE 373)
-                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, upperDivisionCourses)
+                        createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, technicalCourses)
+       
+            elif classDescription == "MAT":
+                if classNumber.isdigit() and classNumber in MATcoursesttreatedasCSE:
+                        if classNumber == "373":
+                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, upperDivisionCourses)
                         else:
-                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, technicalCourses)
-                    # Discard any other MAT courses 
-                else: sys.exit("Trouble reading data from file.")
-            elif classDescription in AMScoursestreatedasCSE:
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
-                if classNumber.isdigit():
-                    tupleClass = AMScoursestreatedasCSE[classDescription]
+                            createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, technicalCourses)
+ 
+            elif classDescription == "AMS":
+                if classNumber.isdigit() and classNumber in AMScoursestreatedasCSE:
                     if classNumber in tupleClass:
-                        createClassObjetctForCSE(semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, technicalCourses)
-                    # Discard any other AMS courses
-                else: sys.exit("Trouble reading data from file.")
+                        createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, technicalCourses)
+  
+
         elif "ISE" in modifiedLine and studentInformation['Major'] == "ISE": # Need to also check if the class is part of a specalization or not
-            technical = False 
-            specalization = False # Boolean flag to determine if part of a specalization or not 
+           
+            technical, specalization = False, False 
+
             classTitle = "ISE"
-            indexLocation = modifiedLine.index("ISE") + 3
-            classNumber = ""
-            while len(classNumber) != 3:
-                classNumber += modifiedLine[indexLocation]
-                indexLocation += 1
+            classNumber = modifiedLine[3:6]
+
+            possibly_counted = ["475", "488"]
+
             if classNumber.isdigit(): # Might need to make some modifications here cause stuff might be incorrect 
-                if classNumber in requiredLowerDivisonCourses: # Only handles ISE 218
-                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-                elif classNumber in requiredUpperDivisionCourses: #Handles ISE upper division courses that are requred 
-                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                if classNumber in requiredLowerDivisonCourses or classNumber in requiredUpperDivisionCourses:
+                    createClassObjectForISE(semesterText, semesterYear, modifiedLine, classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
                 else: # Looks for both ISE electives (ISE 3xx) AND ISE specalization courses, so we need to handle both cases where they are
-                    getTuple = alternateRequiredCourses[classTitle] # Check to see if the ISE class is in the specalization class 
-                    if classNumber in getTuple: #It is both a technical and a specialization
-                        technical = True  
-                        specalization = True # Set to true, so we are looking at an elective course AND specalization course
-                    else: #It is only a technical, not a specalization as well 
-                        technical = True
-                        specalization = False 
-                    if (classNumber == "475" and '475' in technicalCourses) or (classNumber == "488" and '488' in technicalCourses): continue # We can only count this as one
-                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-            else: sys.exit("Trouble reading data from file.")
+                    if classNumber in possibly_counted and classNumber in technicalCourses: continue 
+
+                    getTuple = alternateRequiredCourses[classTitle]
+
+                    if classNumber in getTuple: technical, specalization = True, True 
+                    else: technical, specalization = True, False 
+
+                    createClassObjectForISE(semesterText, semesterYear, modifiedLine, classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+    
+
         elif "ISE" not in modifiedLine and studentInformation['Major'] == "ISE": # Need to consider a lot for ISE students
-            # This handles the case for CSE 114 and CSE 214 
-            # First check and see if the class description is in the intended required courses
-            specalization = False
-            technical = False
-            classDescription = modifiedLine[0:3]
-            classTitle = classDescription # Store the class title, which will be used for the method 
-            if classDescription in alternateRequiredCourses:
-                # Get the class number
-                indexLocation = modifiedLine.index(classDescription) + 3 
-                classNumber = ""
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
+    
+            technical, specalization = False, False 
+            classTitle = modifiedLine[0:3]
+            classNumber = modifiedLine[3:6]
+
+            if classTitle in alternateRequiredCourses:
+
                 if classNumber.isdigit():
+
                     if classNumber in requiredLowerDivisonCourses: # Handles the case for CSE 114 and CSE 214
-                        if "215" not in modifiedLine:
-                            specalization = False
-                        elif "215" in modifiedLine: # Considered to be a specalization class option and also a math required option
-                            specalization = True 
-                        createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-                    else: # We looking at a class number greater than 300 or is in the alternate course directory
+                        specalization = False if "215" not in modifiedLine else True 
+                        createClassObjectForISE(semesterText, semesterYear, modifiedLine, classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                    
+                    else: 
                         tupleClass = alternateRequiredCourses[classDescription]
-                        if classNumber in tupleClass: # Is a specialization class 
+
+                        if classNumber in tupleClass: # We are looking at a specialization class 
                             if classTitle == "EST" and classNumber == "323": # Counts as CSE/ISE/EST 323 so also an technical course
                                 specalization, technical = True, True
-                                createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
                             elif classTitle == "CSE" and int(classNumber) >= 300: # All upper 300 counts as technical as well
                                 specalization, technical = True, True
-                                createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
                             else:
                                 specalization, technical = True, False 
-                                createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                            createClassObjectForISE(semesterText, semesterYear, modifiedLine, classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+
                         else: # Then we are most likely looking at a technical elective for ISE (only CSE and ISE classes are allowed)
+                            
                             if classTitle == "CSE":
+
                                 if classNumber == "300": # CSE/ISE 300
-                                    classTitle = "ISE"
-                                    classNumber = "300"
                                     specalization, technical = False, False # Required Course
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine, "ISE", classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
                                 elif classNumber == "312": # CSE/ISE 312
-                                    classTitle = "ISE"
                                     classNumber = "312"
                                     specalization, technical = False, False # Required Course
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine, "ISE", classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
                                 elif classNumber == "310": # CSE 310
                                     specalization, technical = False, False # Required Course
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine, "ISE", "316", lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
                                 else:
                                     specalization, technical = False, True # Only a CSE technical course
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-                            elif classTitle == "EST": 
-                                if classNumber == "340" or classNumber == "339": #EST 340 an EST 339 count as ISE technical electives as they are also offered as ISE 340 and ISE 339
-                                    specalization, technical = False, True # This is considered to be a technical elective
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-                            elif classTitle == "BUS":
-                                if classNumber == "340": # Required Course
-                                    specalization, technical = False, False
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-                            elif classTitle == "POL":
-                                if classNumber == "369":
-                                    specalization, technical = False, True # Offered as ISE 369 as well
-                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine[indexLocation::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
-                            # Any other class down here will get discarded 
-                else: sys.exit("Trouble reading data from file.")
+                                    createClassObjectForISE(semesterText, semesterYear, modifiedLine, classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
+                            else:
+
+                                if classTitle == "EST": 
+                                    if classNumber == "340" or classNumber == "339": # EST 340 an EST 339 count as ISE technical electives as they are also offered as ISE 340 and ISE 339
+                                        specalization, technical = False, True # This is considered to be a technical elective
+                            
+                                elif classTitle == "BUS":
+                                    if classNumber == "340": # Required Course
+                                        specalization, technical = False, False
+                            
+                                elif classTitle == "POL":
+                                    if classNumber == "369":
+                                        specalization, technical = False, True # Offered as ISE 369 as well
+
+                                createClassObjectForISE(semesterText, semesterYear, modifiedLine[3::], classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specalization, technical)
 
         
-# A thread calls this function in order to find and parse and store the required math courses
-def mathTracker(text, mathRequiredCourses):
+# Thread calls to track the math courses 
+def mathTracker(text: list[str], studentInformation: dict, mathRequiredCourses: dict):
+
+    list_of_seasons = ["Spring", "Summer", "Winter", "Fall"]
+
     semesterText = ""
     semesterYear = ""
+
     for lineOfInformation in text:
+
         modifiedLine = lineOfInformation.replace(" ", "")
-        if "TermGPA" in modifiedLine or "TestTransGPA" in modifiedLine: # Reset the semesterText and semesterYear strings 
-                semesterText = ""
-                semesterYear = ""
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and "Session" not in modifiedLine:
-                index = 0
-                while not (modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if "Fall" == semesterText or "Winter" == semesterText or "Summer" == semesterText or "Winter" == semesterText: break
-                    semesterText += modifiedLine[index]
-                    index += 1
-                while (index != len(modifiedLine) and modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                    semesterYear += modifiedLine[index]
-                    index += 1
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" in modifiedLine) and (semesterText == "") and (semesterYear == ""):
-            springIndex = modifiedLine.find("Spring")
-            fallIndex = modifiedLine.find("Fall")
-            winterIndex = modifiedLine.find("Winter")
-            summerIndex = modifiedLine.find("Summer")
-            if springIndex >= 0:
-                semesterText = "Spring"
-            elif fallIndex >= 0:
-                semesterText = "Fall"
-            elif winterIndex >= 0:
-                semesterText = "Winter"
-            elif summerIndex >= 0:
-                semesterText = "Summer"
-            findFirstCharacter = modifiedLine.find("/")
-            stringAfter = modifiedLine[findFirstCharacter+1::]
-            findSecondCharacter = stringAfter.find("/")
-            stringAfterSecond = stringAfter[findSecondCharacter+1::]
-            index = 0
-            while (stringAfterSecond[index] >= '0' and stringAfterSecond[index] <= '9'):
-                if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                semesterYear += stringAfterSecond[index]
-                index += 1
-        if "AMS" in modifiedLine or "MAT" in modifiedLine:
-                indexLocation = 0
-                classTitle = ""
-                if "AMS" in modifiedLine:
-                    indexLocation = modifiedLine.index("AMS") + 3
-                    classTitle = "AMS"
-                elif "MAT" in modifiedLine:
-                    indexLocation = modifiedLine.index("MAT") + 3
-                    classTitle = "MAT"
-                classNumber = ""
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
-                if classNumber == "LVL": continue # Tells us Math Placement Test, so we skip this 
+
+        if "CumGPA" in modifiedLine or "TestTransGPA" in modifiedLine: semesterText, semesterYear = "", ""
+
+        if not semesterText and not semesterYear:
+            for season in list_of_seasons:
+                if season in modifiedLine and "Session" in modifiedLine:
+                    semesterText = season 
+                    requirement_term_string = studentInformation['Requirement Term']
+                    requirement_term_year = requirement_term_string[requirement_term_string.index(' ')+1:]
+
+                    for _ in range(1, 11, 1): # We run this loop 10 times to check if one of the years exist
+                        if requirement_term_year in modifiedLine:
+                            semesterYear = requirement_term_year
+                        else:
+                            requirement_term_year = str(int(requirement_term_year) + 1)
+
+        possible_math_courses = ["AMS", "MAT"]    
+
+        for math_course in possible_math_courses:
+            if math_course in modifiedLine:
+                classNumber = modifiedLine[3:6]
                 if classNumber.isdigit():
-                    createClassObjectForMathCourses(classTitle, semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, mathRequiredCourses)
-                else: sys.exit("Trouble reading data from file.")
+                    createClassObjectForMathCourses(math_course, semesterText, semesterYear, modifiedLine, classNumber, mathRequiredCourses)
     
-# Only for the CSE majors there is a science course requirement, so this thread calls this function
-# in order to parse and store science courses in order to meet the 9 credits/1 lab requirement
-def scienceTracker(text, scienceCourses):
-    semesterText = ""
-    semesterYear = ""
+
+# Thread calls to track the science courses 
+def scienceTracker(text: list[str], studentInformation: dict, scienceCourses: dict):
+
+    semesterText, semesterYear = "", ""
+
+    list_of_seasons = ["Spring", "Summer", "Winter", "Fall"]
+
     for lineOfInformation in text:
+
         modifiedLine = lineOfInformation.replace(" ", "")
-        if "TermGPA" in modifiedLine: # Reset the semesterText and semesterYear strings 
-                semesterText = ""
-                semesterYear = ""
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" not in modifiedLine):
-                index = 0
-                while not (modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if "Fall" == semesterText or "Winter" == semesterText or "Summer" == semesterText or "Winter" == semesterText: break # We are done parsing
-                    semesterText += modifiedLine[index]
-                    index += 1
-                while (index != len(modifiedLine) and modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                    semesterYear += modifiedLine[index]
-                    index += 1
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" in modifiedLine) and (semesterText == "") and (semesterYear == ""):
-            springIndex = modifiedLine.find("Spring")
-            fallIndex = modifiedLine.find("Fall")
-            winterIndex = modifiedLine.find("Winter")
-            summerIndex = modifiedLine.find("Summer")
-            if springIndex >= 0:
-                semesterText = "Spring"
-            elif fallIndex >= 0:
-                semesterText = "Fall"
-            elif winterIndex >= 0:
-                semesterText = "Winter"
-            elif summerIndex >= 0:
-                semesterText = "Summer"
-            findFirstCharacter = modifiedLine.find("/")
-            stringAfter = modifiedLine[findFirstCharacter+1::]
-            findSecondCharacter = stringAfter.find("/")
-            stringAfterSecond = stringAfter[findSecondCharacter+1::]
-            index = 0
-            while (stringAfterSecond[index] >= '0' and stringAfterSecond[index] <= '9'):
-                if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                semesterYear += stringAfterSecond[index]
-                index += 1
-        if "PHY" in modifiedLine or "BIO" in modifiedLine or "CHE" in modifiedLine or "GEO" in modifiedLine or "AST" in modifiedLine:
-                classTitle = modifiedLine
-                indexLocation = 0
-                if "PHY" in modifiedLine:
-                    indexLocation = modifiedLine.index("PHY") + 3
-                    classTitle = "PHY"
-                elif "BIO" in modifiedLine:
-                    indexLocation = modifiedLine.index("BIO") + 3
-                    classTitle = "BIO"
-                elif "GEO" in modifiedLine:
-                    indexLocation = modifiedLine.index("GEO") + 3
-                    classTitle = "GEO"
-                elif "AST" in modifiedLine:
-                    indexLocation = modifiedLine.index("AST") + 3
-                    classTitle = "AST"
-                elif "CHE" in modifiedLine:
-                    indexLocation = modifiedLine.index("CHE") + 3
-                    classTitle = "CHE"
-                classNumber = ""
-                while len(classNumber) != 3:
-                    classNumber += modifiedLine[indexLocation]
-                    indexLocation += 1
+        
+        if "CumGPA" in modifiedLine: semesterText, semesterYear = "", "" # Reset the semesterText and semesterYear strings 
+
+        if not semesterText and not semesterYear:        
+            for season in list_of_seasons:
+                if season in modifiedLine and "Session" in modifiedLine:
+                    semesterText = season 
+                    requirement_term_string = studentInformation['Requirement Term']
+                    requirement_term_year = requirement_term_string[requirement_term_string.index(' ')+1:]
+
+                    for _ in range(1, 11, 1): # We run this loop 10 times to check if one of the years exist
+                        if requirement_term_year in modifiedLine:
+                            semesterYear = requirement_term_year
+                        else:
+                            requirement_term_year = str(int(requirement_term_year) + 1)
+        
+        possible_science_courses = ["PHY", "BIO", "CHE", "GEO", "AST"]
+
+        for science_course in possible_science_courses:
+            if science_course in modifiedLine:
+                classNumber = modifiedLine[3:6]
                 if classNumber.isdigit():
-                    createClassObjectForScienceCourses(classTitle, semesterText, semesterYear, modifiedLine[indexLocation::], classNumber, scienceCourses)
-                else: sys.exit("Trouble reading data from file.")
+                    createClassObjectForScienceCourses(science_course, semesterText, semesterYear, modifiedLine, classNumber, scienceCourses)
 
 # A thread calls this function in order to find and store any SBCs that satisfy the CSE and ISE SBCs requirement
-def sbcsTracker(text, sbcCourses):
-    # For transfering (we only consider the possible AP classes)
-    transferEquivalency = {('AFS', 'ECO', 'POL', 'HIS', 'PSY'): 'SBS', ('AFS', 'HIS', 'POL'): 'USA', ('AFS', 'PSY'): 'CER', ('ARH', 'ARS', 'MUS'): 'ARTS', ('BIO', 'CHE', 'SUS', 'PHY'): 'SNW', ('MAT', 'AMS'): 'QPS', ('CHI', 'FRN', 'GER', 'ITL', 'JPN', 'LAT', 'SPN'): 'LANG', ('CHI', 'FRN', 'GER', 'HIS', 'ITL', 'JPN', 'SPN'): 'GLO', ('CHI', 'EGL', 'FRN', 'GER', 'ITL', 'JPN', 'SPN'): 'HUM', ('CSE'): 'TECH', ('LAT'): 'HFA+'}
-
-    semesterText = ""
-    semesterYear = ""
-    semesterDateInfoParsed = False
-    keepSkipping, keepSkippingSecond = False, False  
-    for lineinformation in text:
-        modifiedLine = lineinformation.replace(" ", "")
-        classInfo = modifiedLine[0:3]
-        if "TestCredits" in modifiedLine and keepSkipping == False:
-            indexOfUnmodifiedLine = text.index(lineinformation)
-            listAfterwards = text[indexOfUnmodifiedLine+2::]
-            handleTestCreditsSbcs(listAfterwards, sbcCourses, transferEquivalency)
-            keepSkipping = True
-        if "TransferCredit" in modifiedLine and keepSkippingSecond == False:
-            indexOfUnmodifiedLine = text.index(lineinformation)
-            listAfterwards = text[indexOfUnmodifiedLine+2::]
-            handleTestCreditsSbcs(listAfterwards, sbcCourses, transferEquivalency)
-            keepSkippingSecond = True 
-        if "TestTransGPA" in modifiedLine:
-            keepSkipping = False
-        if "TermGPA" in modifiedLine:
-            semesterText = ""
-            semesterYear = ""
-            semesterDateInfoParsed = False
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" not in modifiedLine) and semesterDateInfoParsed == False:
-                index = 0
-                while not (modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if "Fall" == semesterText or "Winter" == semesterText or "Summer" == semesterText or "Winter" == semesterText: break # We are done parsing
-                    semesterText += modifiedLine[index]
-                    index += 1
-                while (index != len(modifiedLine) and modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                    semesterYear += modifiedLine[index]
-                    index += 1
-                semesterDateInfoParsed = True
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" in modifiedLine) and (semesterText == "") and (semesterYear == ""):
-            springIndex = modifiedLine.find("Spring")
-            fallIndex = modifiedLine.find("Fall")
-            winterIndex = modifiedLine.find("Winter")
-            summerIndex = modifiedLine.find("Summer")
-            if springIndex >= 0:
-                semesterText = "Spring"
-            elif fallIndex >= 0:
-                semesterText = "Fall"
-            elif winterIndex >= 0:
-                semesterText = "Winter"
-            elif summerIndex >= 0:
-                semesterText = "Summer"
-            findFirstCharacter = modifiedLine.find("/")
-            stringAfter = modifiedLine[findFirstCharacter+1::]
-            findSecondCharacter = stringAfter.find("/")
-            stringAfterSecond = stringAfter[findSecondCharacter+1::]
-            index = 0
-            while (stringAfterSecond[index] >= '0' and stringAfterSecond[index] <= '9'):
-                if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                semesterYear += stringAfterSecond[index]
-                index += 1
-        elif keepSkipping == False:
-            checkSubString = modifiedLine[3:6]
-            if checkSubString.isdigit(): pass # We do nothing
-            else: continue
-
-            offsetIndex = 1
-            getIndex = text.index(lineinformation)
-            lengthCounter = getIndex + 1 # Gets the actual current length of the list, so lengthCounter will always be 1 greater than the index we are accessing
-            attributesLine = False
-            notFound = False
-            attributesLineInfo = ""
-
-            while notFound == False and attributesLine == False and lengthCounter < len(text):
-                lengthCounter += 1
-                nextLine = text[getIndex+offsetIndex] 
-                modifiedNextLine = nextLine.replace(" ", "")
-                # check and see if we are reading a class line
-                classInfoTemp = modifiedNextLine[3:6]
-                if "CourseAttributes" in modifiedNextLine:
-                    attributesLineInfo = nextLine
-                    attributesLine = True # We found the attributesLine
-                elif "TermGPA" in modifiedNextLine and attributesLine == False:
-                    notFound = True
-                else:
-                    offsetIndex += 1
-                    if classInfoTemp.isdigit(): notFound = True
-                    else: continue
-            # Once we have found the line with the course attribute, we want to parse it 
-            if notFound == True: continue
-
-            if attributesLine == True:
-                if "Controlled Access" in attributesLineInfo:
-                    # Then we still need to keep looking for the actual line that contains the SBC
-                    # Go to the next line:
-                    # 1) Next line will have the SBC we are looking for
-                    # 2) Next line will be another class, which in that case, we don't create an object
-                    controlledAccessLine = text.index(attributesLineInfo)
-                    nextLine = text[controlledAccessLine + 1]
-                    checkForClass = nextLine[3:6]
-                    if checkForClass.isdigit(): continue # Means we are looking at a new class line, so we continue
-                    else:
-                        # This line is an SBC, so we can parse
-                        index = 0
-                        sbcStringList = []
-                        sbcLine = ""
-                        while nextLine[index] >= 'A'and nextLine[index] <= 'Z':
-                            sbcLine += nextLine[index]
-                            index += 1
-                        sbcStringList.append(sbcLine)
-                        
-                        # Might be more SBCs after this, so we need to continue parsing further
-
-                        offsetIndex += 2
-                        stillParsingSbcs = False
-                        while stillParsingSbcs == False:
-                            furtherLine = text[getIndex+offsetIndex] 
-                            furtherLineModified = furtherLine.replace(" ", "")
-                            # Check to see if there is also a class character or not 
-                            classInfoMoreTemp = furtherLineModified[3:6]
-                            if "TermGPA" in furtherLineModified:
-                                stillParsingSbcs = True 
-                            else:
-                                if classInfoMoreTemp.isdigit():
-                                    stillParsingSbcs = True # Set to True
-                                else:
-                                    offsetIndex += 1
-                                    # We have found a line that contains another SBC, so we need to parse this line as well
-                                    startingIndexTemp = 0
-                                    sbcStringTemp = ""
-                                    while furtherLine[startingIndexTemp] != ' ':
-                                        sbcStringTemp += furtherLine[startingIndexTemp]
-                                        startingIndexTemp += 1
-                                    sbcStringList.append(sbcStringTemp)
-                        if '' in sbcStringList:
-                            indexOfEmpty = sbcStringList.index('')
-                            sbcStringList = sbcStringList[0:indexOfEmpty]
-                    createClassObjectForSBCCourses(classInfo, sbcStringList, semesterText, semesterYear, modifiedLine, checkSubString, sbcCourses)        
-                else:
-                    colonIndex = attributesLineInfo.index(':')
-                    attributesLineInfoModified = attributesLineInfo[colonIndex+2::]
-                    sbcStringList = []
-                    sbcString = ""
-                    startingIndex = 0
-                    while attributesLineInfoModified[startingIndex] != ' ':
-                        sbcString += attributesLineInfoModified[startingIndex]
-                        startingIndex += 1
-                    sbcStringList.append(sbcString)
-
-                    # Might be more to parse, so we don't know 
-                    offsetIndex += 1
-                    lengthCounterTemp = getIndex + offsetIndex + 1
-                    stillParsingSbcs = False
-                    while stillParsingSbcs == False and lengthCounterTemp < len(text):
-                        lengthCounterTemp += 1
-                        furtherLine = text[getIndex+offsetIndex]
-                        furtherLineModified = furtherLine.replace(" ", "")
-                        # Check to see if there is also a class character or not 
-                        classInfoMoreTemp = furtherLineModified[3:6]
-                        if "TermGPA" in furtherLineModified:
-                            stillParsingSbcs = True 
-                        else:
-                            if classInfoMoreTemp.isdigit():
-                                stillParsingSbcs = True # Set to True
-                            else:
-                                offsetIndex += 1
-                                # We have found a line that contains another SBC, so we need to parse this line as well
-                                startingIndexTemp = 0
-                                sbcStringTemp = ""
-                                while furtherLine[startingIndexTemp] != ' ':
-                                    sbcStringTemp += furtherLine[startingIndexTemp]
-                                    startingIndexTemp += 1
-                                sbcStringList.append(sbcStringTemp)
-                    if '' in sbcStringList:
-                        indexOfEmpty = sbcStringList.index('')
-                        sbcStringList = sbcStringList[0:indexOfEmpty]
-                    createClassObjectForSBCCourses(classInfo, sbcStringList, semesterText, semesterYear, modifiedLine, checkSubString, sbcCourses)
-
-# A thread calls this function in order to keep track of the classes taken by the student per semester
-def classTracker(text, classesPerSemester): #Responsible for keeping a dictionary of what classes the student is taking per semester
+def sbcsTracker(text: list[str], studentInformation: dict, sbcCourses: dict):
 
     transferEquivalency = {('AFS', 'ECO', 'POL', 'HIS', 'PSY'): 'SBS', ('AFS', 'HIS', 'POL'): 'USA', ('AFS', 'PSY'): 'CER', ('ARH', 'ARS', 'MUS'): 'ARTS', ('BIO', 'CHE', 'SUS', 'PHY'): 'SNW', ('MAT', 'AMS'): 'QPS', ('CHI', 'FRN', 'GER', 'ITL', 'JPN', 'LAT', 'SPN'): 'LANG', ('CHI', 'FRN', 'GER', 'HIS', 'ITL', 'JPN', 'SPN'): 'GLO', ('CHI', 'EGL', 'FRN', 'GER', 'ITL', 'JPN', 'SPN'): 'HUM', ('CSE'): 'TECH', ('LAT'): 'HFA+'}
+    
+    # We can have a separate loop that will handle test credits 
+    line_counter = 0
+    keepSkipping, keepSkippingSecond = False, False
 
-    semesterText = ""
-    semesterYear = ""
-    keepSkipping, keepSkippingSecond = False, False # The second variable is going to be used for the transfer credit from other colleges 
-    for lineofInformation in text:
-        modifiedLine = lineofInformation.replace(" ", "")
-        classNumberTracker = modifiedLine[3:6]
-        if "TestCredits" in modifiedLine and keepSkipping == False:
-            indexOfUnmodifiedLine = text.index(lineofInformation)
-            listAfterwards = text[indexOfUnmodifiedLine+2::]
+    beginning_seen = studentInformation.get('Beginning SBCTracker')
+
+    if beginning_seen is None: 
+        studentInformation['Beginning SBCTracker'] = False 
+        beginning_seen = False 
+
+    while not beginning_seen: 
+
+        test_credits_line = text[line_counter].replace(" ", "")
+    
+        if "Beginning" in test_credits_line: # We are at the actual 
+            studentInformation['Beginning SBCTracker'] = True 
+            break 
+
+        if "TestCredits" in test_credits_line and not keepSkipping:
+            listAfterwards = text[line_counter::]
+            line_counter += handleTestCreditsSbcs(listAfterwards, sbcCourses, transferEquivalency) 
             keepSkipping = True
-            handleTestCreditsNormal(listAfterwards, classesPerSemester, transferEquivalency)
-        if "TransferCredit" in modifiedLine and keepSkippingSecond == False: # We are looking at transfer credits from another college 
-            # So we also want to handle test credits that satisfy specific classes for the student
-            indexOfUnmodifiedLine = text.index(lineofInformation)
-            listAfterwards = text[indexOfUnmodifiedLine+2::]
-            handleTestCreditsNormal(listAfterwards, classesPerSemester, transferEquivalency)
-            keepSkippingSecond = True 
-        if "TestTransGPA" in modifiedLine:
-            keepSkipping = False
-        if "TermGPA" in modifiedLine:
-            semesterText = ""
-            semesterYear = ""
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" not in modifiedLine) and keepSkipping == False:
-                index = 0
-                while not (modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if "Fall" == semesterText or "Winter" == semesterText or "Summer" == semesterText or "Winter" == semesterText: break # We are done parsing
-                    semesterText += modifiedLine[index]
-                    index += 1
-                while (index != len(modifiedLine) and modifiedLine[index] >= '0' and modifiedLine[index] <= '9'):
-                    if len(semesterYear) == 4 and semesterYear.isdigit(): break # We successfully parsed the year 
-                    semesterYear += modifiedLine[index]
-                    index += 1
-        if ("Spring" in modifiedLine or "Fall" in modifiedLine or "Winter" in modifiedLine or "Summer" in modifiedLine) and ("Session" in modifiedLine) and (semesterText == "") and (semesterYear == "") and keepSkipping == False:
-            springIndex = modifiedLine.find("Spring")
-            fallIndex = modifiedLine.find("Fall")
-            winterIndex = modifiedLine.find("Winter")
-            summerIndex = modifiedLine.find("Summer")
-            if springIndex >= 0:
-                semesterText = "Spring"
-            elif fallIndex >= 0:
-                semesterText = "Fall"
-            elif winterIndex >= 0:
-                semesterText = "Winter"
-            elif summerIndex >= 0:
-                semesterText = "Summer"
-            findFirstCharacter = modifiedLine.find("/")
-            stringAfter = modifiedLine[findFirstCharacter+1::]
-            findSecondCharacter = stringAfter.find("/")
-            stringAfterSecond = stringAfter[findSecondCharacter+1::]
 
-            index = 0 # Reset the index back to 0 
-            while (stringAfterSecond[index] >= '0' and stringAfterSecond[index] <= '9'):
-                if len(semesterYear) == 4 and semesterYear.isdigit(): break
-                semesterYear += stringAfterSecond[index]
-                index += 1
-                
-        if keepSkipping == False:
-            if classNumberTracker.isdigit():
-                classTitle = modifiedLine[0:3]
-                createClassInformation(classTitle, classNumberTracker, semesterText, semesterYear, modifiedLine, classesPerSemester)
-            else:
-                continue # We are not looking at a class line, so we continue
+        if "TransferCredit" in test_credits_line and not keepSkippingSecond:
+            listAfterwards = text[line_counter::]
+            line_counter += handleTestCreditsSbcs(listAfterwards, sbcCourses, transferEquivalency)
+            keepSkippingSecond = True 
+        else:
+            line_counter += 1
+    
+    # This loop will handle normal semester information 
+    semesterText, semesterYear = "", ""
+    class_found = False 
+    list_of_seasons = ["Spring", "Summer", "Winter", "Fall"]
+    sbc_possibilities = ["EXP+", "HFA+", "SBS+", "STEM+", "ARTS", "GLO", "HUM", "LANG", "QPS", "SBS", "SNW", "TECH", "USA", "WRT", "STAS", "CER", "DIV", "ESI", "SPK", "WRTD"]
+    class_reference = ""
+
+    new_text = text[line_counter::]
+    new_counter = 0 
+
+    classDescription = ""
+    classNumber = ""
+
+    while new_counter < len(new_text):
+
+        modifiedLine = new_text[new_counter].replace(" ", "")
         
+        if "CumGPA" in modifiedLine: semesterText, semesterYear = "", "" # Reset the strings
+
+        if not semesterText and not semesterYear:
+            for season in list_of_seasons:
+                    if season in modifiedLine and "Session" in modifiedLine:
+                        semesterText = season 
+                        requirement_term_string = studentInformation['Requirement Term']
+                        requirement_term_year = requirement_term_string[requirement_term_string.index(' ')+1:]
+
+                        for _ in range(1, 11, 1): # We run this loop 10 times to check if one of the years exist
+                            if requirement_term_year in modifiedLine:
+                                semesterYear = requirement_term_year
+                            else:
+                                requirement_term_year = str(int(requirement_term_year) + 1) 
+        
+        if modifiedLine[3:6].isdigit() and not class_found:
+
+            classDescription = modifiedLine[0:3]
+            classNumber = modifiedLine[3:6]
+            class_reference = modifiedLine # Keep a reference to the class we are going to parse 
+            new_counter += 1
+
+            # Search for Course Attributes line 
+            temp_counter = new_counter
+            class_found = False 
+            while not new_text[temp_counter].replace(" ", "")[3:6].isdigit() and not "CumGPA" in new_text[temp_counter].replace(" ", ""):
+                if "CourseAttributes" in new_text[temp_counter].replace(" ", ""):
+                    class_found = True 
+                    break 
+                temp_counter += 1
+    
+        elif "CourseAttributes" in modifiedLine and class_found:
+            # Parse the attirbutes until we have reached another class 
+            parse_attributes_list = new_text[new_counter::]
+
+            attributes_counter = 0
+            sbcs_list = [] # Keep a list of the class
+
+            while True: 
+
+                possible_attribute_line = parse_attributes_list[attributes_counter].replace(" ", "")
+                possible_class_number = possible_attribute_line[3:6]
+
+                if possible_class_number.isdigit() or "CumGPA" in possible_attribute_line: # We have found the next class
+                    
+                    if len(sbcs_list) > 0: createClassObjectForSBCCourses(classDescription, sbcs_list, semesterText, semesterYear, class_reference, classNumber, sbcCourses)
+                    class_reference = ""
+                    class_found = False # Reset the variable 
+                    new_counter += attributes_counter - 1
+                    break 
+                else: # We are possibly looking at a SBC class 
+                    for sbc_item in sbc_possibilities:
+                        if sbc_item in possible_attribute_line:
+                            sbcs_list.append(sbc_item) 
+                            break 
+                    attributes_counter += 1
+        else: new_counter += 1    
+
+            
+# A thread calls this function in order to keep track of the classes taken by the student per semester
+def classTracker(text: list[str], studentInformation: dict,  classesPerSemester: dict): #Responsible for keeping a dictionary of what classes the student is taking per semester
+
+    transferEquivalency = {('AFS', 'ECO', 'POL', 'HIS', 'PSY'): 'SBS', ('AFS', 'HIS', 'POL'): 'USA', ('AFS', 'PSY'): 'CER', ('ARH', 'ARS', 'MUS'): 'ARTS', ('BIO', 'CHE', 'SUS', 'PHY'): 'SNW', ('MAT', 'AMS'): 'QPS', ('CHI', 'FRN', 'GER', 'ITL', 'JPN', 'LAT', 'SPN'): 'LANG', ('CHI', 'FRN', 'GER', 'HIS', 'ITL', 'JPN', 'SPN'): 'GLO', ('CHI', 'EGL', 'FRN', 'GER', 'ITL', 'JPN', 'SPN'): 'HUM', ('CSE'): 'TECH', ('LAT'): 'HFA+'}
+
+    beginning_seen = studentInformation.get('Beginning NormalTracker')
+
+    if beginning_seen is None: 
+        studentInformation['Beginning NormalTracker'] = False 
+        beginning_seen = False 
+
+    line_counter = 0
+    keepSkipping, keepSkippingSecond = False, False # The second variable is going to be used for the transfer credit from other colleges
+
+    while not beginning_seen: 
+
+        test_credits_line = text[line_counter].replace(" ", "")
+    
+        if "Beginning" in test_credits_line: # We are at the actual 
+            studentInformation['Beginning NormalTracker'] = True 
+            break 
+
+        if "TestCredits" in test_credits_line and not keepSkipping:
+            listAfterwards = text[line_counter::]
+            line_counter += handleTestCreditsNormal(listAfterwards, classesPerSemester, transferEquivalency) 
+            keepSkipping = True
+
+        if "TransferCredit" in test_credits_line and not keepSkippingSecond:
+            listAfterwards = text[line_counter::]
+            line_counter += handleTestCreditsNormal(listAfterwards, classesPerSemester, transferEquivalency)
+            keepSkippingSecond = True 
+        else:
+            line_counter += 1
+
+    list_of_seasons = ["Spring", "Summer", "Winter", "Fall"]
+    
+    new_text = text[line_counter::]
+    new_counter = 0 
+
+    semesterText, semesterYear = "", ""
+
+    while new_counter < len(new_text):
+
+        modified_line = new_text[new_counter].replace(" ", "")
+
+        if "CumGPA" in modified_line: semesterText, semesterYear = "", "" 
+        
+        
+        if not semesterText and not semesterYear:
+            for season in list_of_seasons:
+                if season in modified_line and "Session" in modified_line:
+                    semesterText = season 
+                    requirement_term_string = studentInformation['Requirement Term']
+                    requirement_term_year = requirement_term_string[requirement_term_string.index(' ')+1:]
+
+                    for _ in range(1, 11, 1): # We run this loop 10 times to check if one of the years exist
+                        if requirement_term_year in modified_line:
+                            semesterYear = requirement_term_year
+                        else:
+                            requirement_term_year = str(int(requirement_term_year) + 1)
+
+        if modified_line[3:6].isdigit(): createClassInformation(modified_line[0:3], modified_line[3:6], semesterText, semesterYear, modified_line, classesPerSemester)
+        new_counter += 1
+
+
 # This function creates an object for a CSE course
 @staticmethod
-def createClassObjetctForCSE(semesterText, semesterYear, modifiedLine, classNumber, courseDictionary):
+def createClassObjetctForCSE(semesterText: str, semesterYear: str, modifiedLine: str, classNumber: str, courseDictionary: dict):
 
-    dictInformation = parseSpecificClassInformation("", "", "", modifiedLine)
+    dictInformation = parseSpecificClassInformation(modifiedLine)
 
-    list_of_cross_over_classes = ["300", "301", "311", "312", "323", "332", "333", "334", "337", "364"]
-
-    list_of_cross_over_classes_mat = ["371", "373"]
-
-    list_of_cross_over_classe_ams = ["345"]
-
-    # Create our class object
+    dict_cross_over = {('300', '301', '311', '312', '332', '333', '334', '337', '364'): 'CSE/ISE', ('371', '373'): 'CSE/MAT', ('345'): 'CSE 355/AMS 345', ('323'): 'CSE/ISE/EST'}
+   
+    # Lower Division Classes
     if int(classNumber) < 300:
-        lowerDivisionObject = UniversalClassObject("CSE " + classNumber, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
-        courseName = lowerDivisionObject.courseName
+
+        courseName = f'CSE {classNumber}' 
+        lowerDivisionObject = UniversalClassObject(courseName, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
         courseDictionary[courseName] = lowerDivisionObject
+
+    # Upper Division Classes and possibly any cross over classes 
     elif int(classNumber) >= 300:
-        stringName = "CSE"
-        decisionString = "" if classNumber in list_of_cross_over_classe_ams else " " + classNumber
-        if classNumber in list_of_cross_over_classes: # Also considered to be an ISE class 
-            if classNumber == "323":
-                stringName = "CSE/ISE/EST"
-            else:
-                stringName = "CSE/ISE" # Consider to be both classes
-        elif classNumber in list_of_cross_over_classes_mat:
-            stringName = "CSE/MAT"
-        elif classNumber in list_of_cross_over_classe_ams:
-            stringName = "CSE 355/AMS 345"
-        upperDivisonObject = UniversalClassObject(stringName + f'{decisionString}', dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
-        courseName = upperDivisonObject.courseName
+
+        # Go through our dictionary cross over
+        courseName = f'CSE {classNumber}'
+        for tuple_section in dict_cross_over.keys():
+            for class_number in tuple_section:
+                if class_number == classNumber:
+                    courseName = f'{dict_cross_over.get(tuple_section)} {classNumber}' if class_number != '345' else dict_cross_over.get(tuple_section)
+
+        upperDivisonObject = UniversalClassObject(courseName, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
         courseDictionary[courseName] = upperDivisonObject
 
 # This function creates an object for an ISE course
 @staticmethod
-def createClassObjectForISE(semesterText, semesterYear, modifiedLine, classTitle, classNumber, lowerDivisionCourses, upperDivisionCourses, technicalCourses, specializeRequiredCourses, mathRequiredCourses, specBool, techBool): 
+def createClassObjectForISE(semesterText: str, semesterYear: str, modifiedLine: str, classTitle: str, classNumber: str, lowerDivisionCourses: dict, upperDivisionCourses: dict, technicalCourses: dict, specializeRequiredCourses: dict, mathRequiredCourses: dict, specBool: bool, techBool: bool): 
 
-    dictInformation = parseSpecificClassInformation("", "", "", modifiedLine)
+    dictInformation = parseSpecificClassInformation(modifiedLine)
 
-    list_of_cross_over_classes = ["300", "301", "311", "312", "323", "332", "333", "334", "337", "364"] # CSE/ISE courses and ONE EST course
-
-    list_of_cross_over_classes_with_est = ["310", "339", "340"] # ISE/EST Courses
-
-    list_of_cross_over_classes_with_pol = ["369"] # Only one course in this case, which is ISE 369/POL 369
+    dict_cross_over = {('300', '301', '311', '312', '332', '333', '334', '337', '364'): 'CSE/ISE', ('339'): 'ISE/EST', ('310','340'): 'ISE 340/EST 310', ('369'): 'ISE/POL', ('323'): 'CSE/ISE/EST'}
 
     if int(classNumber) < 300: # Lower division courses cant be considered electives, as they are required to be 300+ courses
-        lowerDivisionObject = UniversalClassObject(classTitle + " " + classNumber, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
+
+        lowerDivisionObject = UniversalClassObject(f'{classTitle} {classNumber}', dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
         courseName = lowerDivisionObject.courseName
-        # Need to do some stuff here to determine where the objects go
-        if specBool == True:
-            specializeRequiredCourses[courseName] = lowerDivisionObject
-            mathRequiredCourses[courseName] = lowerDivisionObject # Only 215 fits this category 
+
+        if specBool:
+            specializeRequiredCourses[courseName], mathRequiredCourses[courseName] = lowerDivisionObject, lowerDivisionObject
         else:
             lowerDivisionCourses[courseName] = lowerDivisionObject
-    elif int(classNumber) >= 300: # Many things we need to do for handling
-        stringName = classTitle
-        decisionString = "" if (classNumber == "310" and classTitle == "EST")  or (classNumber == "340" and classTitle == "ISE") else " " + classNumber
-        if classNumber in list_of_cross_over_classes: # Cross-over classes with CSE
-            if classNumber == "323" and (classTitle == "CSE" or classTitle == "ISE" or classTitle == "EST"): # Only one CSE/ISE Course
-                stringName = "CSE/ISE/EST"
-            elif (classTitle == "CSE" or classTitle == "ISE"): # CSE/ISE Course
-                stringName = "CSE/ISE"
-        elif classNumber in list_of_cross_over_classes_with_est: # 1 cross-over class with EST
-            if (classNumber == "310" and classTitle == "EST")  or (classNumber == "340" and classTitle == "ISE"): 
-                stringName = "ISE 340/EST 310"
-            elif classNumber == "339":
-                stringName = "ISE/EST"
-        elif classNumber in list_of_cross_over_classes_with_pol:
-            stringName = "ISE/POL"
-        upperDivisionObject = UniversalClassObject(stringName + f'{decisionString}', dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
+
+
+    elif int(classNumber) >= 300: 
+
+        courseName = f'{classTitle} {classNumber}'
+        for tuple_section in dict_cross_over.keys():
+            for class_number in tuple_section:
+                if class_number == classNumber:
+                    courseName = f'{dict_cross_over.get(tuple_section)} {classNumber}' if f'{classTitle} {classNumber}' != "EST 310" and f'{classTitle} {classNumber}' != "ISE 340" else dict_cross_over.get(tuple_section)
+
+
+        upperDivisionObject = UniversalClassObject(courseName, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
         courseName = upperDivisionObject.courseName
-        # This is where we need to handle multiple cases
-        if specBool == True and techBool == True:
+    
+        # Handle different ISE possibilities 
+        if specBool and techBool:
+            specializeRequiredCourses[courseName], technicalCourses[courseName] = upperDivisionObject, upperDivisionObject
+        elif specBool and not techBool:
             specializeRequiredCourses[courseName] = upperDivisionObject
-            technicalCourses[courseName] = upperDivisionObject
-        elif specBool == True and techBool == False:
-            specializeRequiredCourses[courseName] = upperDivisionObject
-        elif specBool == False and techBool == True:
+        elif not specBool and techBool:
             technicalCourses[courseName] = upperDivisionObject
         else: 
-            upperDivisionCourses[courseName] = upperDivisionObject # This is a required course
+            upperDivisionCourses[courseName] = upperDivisionObject # Required Course 
     
 # This function is responsible for handling SBCs that are satisfied for courses that the student
 # took before their undergraduate record at SBU started
 @staticmethod
-def handleTestCreditsSbcs(text, sbcCourses, transferEquivalency):
-    semesterText = "Transfer"
-    semesterYear = "Credits"
-    for lineOfInformation in text:
-        modifiedLine = lineOfInformation.replace(" ", "")
-        if "TestTransGPA" in modifiedLine: break
-        classNumberTracker = modifiedLine[3:6] # Find a class number
-        if classNumberTracker.isdigit():
-            classTitle = modifiedLine[0:3]
-            list_of_keys = transferEquivalency.keys()
-            list_of_sbcs = []
-            for keys in list_of_keys:
-                if classTitle in keys:
-                    getSBCValue = transferEquivalency[keys]
-                    list_of_sbcs.append(getSBCValue)
-            if len(list_of_sbcs) != 0:
-                createClassObjectForSBCCourses(classTitle, list_of_sbcs, semesterText, semesterYear, modifiedLine, classNumberTracker, sbcCourses)
-        else: 
-            classTitle = modifiedLine[0:3]
-            list_of_keys = transferEquivalency.keys()
-            list_of_sbcs = []
-            for keys in list_of_keys:
-                if classTitle in keys:
-                    getSBCValue = transferEquivalency[keys]
-                    list_of_sbcs.append(getSBCValue)
-            if len(list_of_sbcs) != 0: #Means we found a class that is associated with an SBC
-                createClassObjectForSBCCourses(classTitle, list_of_sbcs, semesterText, semesterYear, modifiedLine, classNumberTracker, sbcCourses)   
-            continue
-           
+def handleTestCreditsSbcs(text: list[str], sbcCourses: dict, transferEquivalency: dict) -> int:
 
-# This function is responsible for handling the courses that are satisfied for when the student transfered in these
-# courses before their Undergraduate record at SBU began 
-@staticmethod 
-def handleTestCreditsNormal(text, classesPerSemester, transferEquivalency): # To Handle Any Transfer Credits 
-    semesterText = "Transfer"
-    semesterYear = "Credits"
-    for lineOfInformation in text:
+    semesterText, semesterYear = "Transfer", "Credits"
+
+    for index, lineOfInformation in enumerate(text):
+
         modifiedLine = lineOfInformation.replace(" ", "")
-        if "TestTransGPA" in modifiedLine or "Beginning" in modifiedLine: break # We are done parsing 
-        classNumberTracker = modifiedLine[3:6] # Find a class number
-        if classNumberTracker.isdigit():
-            classTitle = modifiedLine[0:3]
-            createClassInformation(classTitle, classNumberTracker, semesterText, semesterYear, modifiedLine, classesPerSemester)
+
+        if "TestTransGPA" in modifiedLine or "Beginning" in modifiedLine: 
+            return index
+
+        classTitle, classNumber = modifiedLine[0:3], modifiedLine[3:6]
+
+        list_of_keys = transferEquivalency.keys()
+        list_of_sbcs = []
+
+        for keys in list_of_keys:
+            if classTitle in keys:
+                getSBCValue = transferEquivalency[keys]
+                list_of_sbcs.append(getSBCValue)
+
+        if len(list_of_sbcs) > 0: createClassObjectForSBCCourses(classTitle, list_of_sbcs, semesterText, semesterYear, modifiedLine, classNumber, sbcCourses)
+ 
+
+# Handles Test Credits prior to official first semester of the student 
+@staticmethod 
+def handleTestCreditsNormal(text: list[str], classesPerSemester: dict, transferEquivalency: dict) -> int: # To Handle Any Transfer Credits 
+
+    semesterText, semesterYear = "Transfer", "Credits"
+
+    for index, lineOfInformation in enumerate(text):
+
+        modifiedLine = lineOfInformation.replace(" ", "")
+
+        if "TestTransGPA" in modifiedLine or "Beginning" in modifiedLine: 
+            return index 
+  
+        if modifiedLine[3:6].isdigit():
+            createClassInformation(modifiedLine[0:3], modifiedLine[3:6], semesterText, semesterYear, modifiedLine, classesPerSemester)
         else: 
-            if classNumberTracker == "LVL":
+            if modifiedLine[3:6] == "LVL":
+
                 classTitle = modifiedLine[0:3]
                 grabLevel = modifiedLine[6]
                 createClassInformation(classTitle, f'LVL{str(grabLevel)}', semesterText, semesterYear, modifiedLine, classesPerSemester)
             else:
-                list_of_keys = transferEquivalency.keys()
                 classTitle = modifiedLine[0:3]
+                list_of_keys = transferEquivalency.keys()
                 for keys in list_of_keys:
-                    if classTitle in keys: 
+                    if modifiedLine[0:3] in keys: 
                         grabSBCValue = transferEquivalency[keys]
                         createClassInformation(classTitle, grabSBCValue, semesterText, semesterYear, modifiedLine, classesPerSemester)
-            continue # Dont think this is necessary but Im gonna keep it here just in case 
 
 
 # This function makes a call to parse specific information about a particular class (any class), creates an object after parsing 
 # is finished and stores the Object in the state variable
 @staticmethod
-def createClassInformation(classTitle, classNumber, semesterText, semesterYear,  modifiedLine, classesPerSemester):
+def createClassInformation(classTitle: str, classNumber: str, semesterText: str, semesterYear: str,  modifiedLine: str, classesPerSemester: dict):
+    
+    dictInformation = parseSpecificClassInformation(modifiedLine)
 
-    dictInformation = parseSpecificClassInformation("", "", "", modifiedLine)
-    if dictInformation: # Dict is not empty 
-        ClassObject = SimpleClassObject(classTitle + " " + classNumber, dictInformation['classCreditsAmount'], dictInformation['classGrade'], semesterText, semesterYear)
+    ClassObject = SimpleClassObject(f'{classTitle} {classNumber}', dictInformation['classCreditsAmount'], dictInformation['classGrade'], semesterText, semesterYear)
         
-        if (semesterText + " " + semesterYear) in classesPerSemester: # The Key Exists 
-            getList = classesPerSemester[semesterText + " " + str(semesterYear)]
-            getList.append(ClassObject)
-        else: # Does not exist, so we create a list for that particular semester
-            listOfClassesInSemester = []
-            listOfClassesInSemester.append(ClassObject)
-            classesPerSemester[semesterText + " " + str(semesterYear)] = listOfClassesInSemester
+    if (f'{semesterText} {semesterYear}') in classesPerSemester:
+        getList = classesPerSemester[f'{semesterText} {semesterYear}']
+        getList.append(ClassObject)
+    else: # Does not exist, so we create a list for that particular semester
+        listOfClassesInSemester = []
+        listOfClassesInSemester.append(ClassObject)
+        classesPerSemester[f'{semesterText} {semesterYear}'] = listOfClassesInSemester
     
 # This function makes a call to parse specific information about a particular math class, creates an object after parsing 
 # is finished and stores the Object in the state variable
 @staticmethod
-def createClassObjectForMathCourses(classTitle, semesterText, semesterYear, modifiedLine, classNumber, mathRequiredCourses):
-    dictInformation = parseSpecificClassInformation("", "", "", modifiedLine)
-    if dictInformation:
-        MathObject = UniversalClassObject(classTitle + " " + classNumber, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
-        mathRequiredCourses[classTitle + " " + classNumber] = MathObject
+def createClassObjectForMathCourses(classTitle: str, semesterText: str, semesterYear: str, modifiedLine: str, classNumber: str, mathRequiredCourses: dict):
+    dictInformation = parseSpecificClassInformation(modifiedLine)
+    MathObject = UniversalClassObject(f'{classTitle} {classNumber}', dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
+    mathRequiredCourses[f'{classTitle} {classNumber}'] = MathObject
 
 # This function makes a call to parse specific information about a particular science class, creates an object after parsing 
 # is finished and stores the Object in the state variable
 @staticmethod
-def createClassObjectForScienceCourses(classTitle, semesterText, semesterYear, modifiedLine, classNumber, scienceCourses):
-    dictInformation = parseSpecificClassInformation("", "", "", modifiedLine)
-    if dictInformation:
-        scienceObject = UniversalClassObject(classTitle + " " +  classNumber + " (SNW)" if int(classNumber) in [132, 131, 141, 152, 201, 102, 103, 122, 125, 127, 142] else (classTitle + " " + classNumber if int(classNumber) in [133, 204, 154, 322, 332, 112, 113, 134, 252] else classTitle + classNumber + " (STEM+)"), dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
-        scienceCourses[classTitle + " " + classNumber] = scienceObject
+def createClassObjectForScienceCourses(classTitle: str, semesterText: str, semesterYear: str, modifiedLine: str, classNumber: str, scienceCourses: dict):
+    dictInformation = parseSpecificClassInformation(modifiedLine)
+    ScienceObject = UniversalClassObject(f'{classTitle} {classNumber}' + " (SNW)" if int(classNumber) in [132, 131, 141, 152, 201, 102, 103, 122, 125, 127, 142] else (classTitle + " " + classNumber if int(classNumber) in [133, 204, 154, 322, 332, 112, 113, 134, 252] else classTitle + classNumber + " (STEM+)"), dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
+    scienceCourses[f'{classTitle} {classNumber}'] = ScienceObject 
 
 # This function makes a call to parse specific information about a particular class with an SBC, creates an object after parsing 
 # is finished and stores the Object in the state variable
 @staticmethod
-def createClassObjectForSBCCourses(classTitle, sbcLabel, semesterText, semesterYear, modifiedLine, classNumber, sbcCourses):
-    dictInformation = parseSpecificClassInformation("", "", "", modifiedLine)
-    if dictInformation:
-        SBCObject = SBCCourse(sbcLabel, classTitle + " " + classNumber, dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
-        sbcCourses[classTitle + " " + classNumber] = SBCObject
+def createClassObjectForSBCCourses(classTitle: str, sbcLabel: list[str], semesterText: str, semesterYear: str, modifiedLine: str, classNumber: str, sbcCourses: dict):
+    dictInformation = parseSpecificClassInformation(modifiedLine)
+    SBCObject = SBCCourse(sbcLabel, f'{classTitle} {classNumber}', dictInformation['classGrade'], dictInformation['classCreditsAmount'], semesterText, semesterYear, dictInformation['classComments'])
+    sbcCourses[f'{classTitle} {classNumber}'] = SBCObject
 
 
-# This function is responsible for parsing one line in the transcript that holds all the required information we need to 
-# make an object afterwards
+# We parse the specific class information 
 @staticmethod
-def parseSpecificClassInformation(classCreditsAmount, classGrade, classComments, modifiedLine) -> dict:
-    if '.' in modifiedLine:
-        indexOfColon = modifiedLine.index('.') # Somehow an SBC ended up here, so any SBCs that end up here we can remove from the dictionary 
-    else: 
-        return {} # Empty dictionary, telling us that this is some error so we need to handle the error 
+def parseSpecificClassInformation(modifiedLine: str) -> dict:
+
+    possible_letters = {'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D', 'F': 'F', 'S': 'S', 'U': 'U', 'T': 'XFER', 'P': 'P', 'I': 'I', 'W': 'W', 'Q': 'Q', 'NC': 'NC', 'NR': 'NR', 'R': 'R'}
+    comment_grades = ['I', 'W', 'Q', 'NC', 'NR', 'R']
+    plus_or_minus = ["+", "-"]
+
+    classDescription, classNumber = modifiedLine[0:3], modifiedLine[3:6]
+
+    strip_class_info = modifiedLine.replace(classDescription, "").replace(classNumber, "")
+
+    # Look for the index 
+    credits_location = -1
+    for index, character in enumerate(strip_class_info):
+        if character == '.':
+            credits_location = index - 1
+            break 
     
-    modifiedLine = modifiedLine[indexOfColon+1::] # Make a new modified line 
-    indexOfColonSecond = -1 # Set default to -1 
+    # Parse the credits amount 
+    credits_amount = ""
+    while len(credits_amount) != 5:
+        credits_amount += strip_class_info[credits_location]
+        credits_location += 1
     
-    if '.' in modifiedLine:
-        indexOfColonSecond = modifiedLine.index('.') # Find the second colon to signify the number of credits earned 
-    else: # If the colon is not found, then we will check for the letter grade that is next to the credits 
-        indexOfColonSecond = indexOfColon 
-    modifiedLine = modifiedLine[indexOfColonSecond-1::]
-    for characters in modifiedLine:
-        if ((characters >= '0' and characters <= '9') or characters == '.') and len(classCreditsAmount) != 5: # We found the class attempted 
-            classCreditsAmount += characters
-        elif len(classCreditsAmount) == 5:
-            if (characters >= 'A' and characters <= 'Z') or characters == '+' or characters == '-':
-                if characters == 'I' or characters == 'W' or characters == 'Q':
-                    classComments += characters
-                    classGrade += characters # Might have side effects, so we will have to see 
-                elif characters == 'T':
-                    classGrade = "XFER"
-                else:
-                    if characters == '+':
-                        classGrade += "+"
-                    elif characters == '-':
-                        classGrade += "-"
-                    else:
-                        classGrade += characters
-    return {'classCreditsAmount': classCreditsAmount, 'classGrade': classGrade, 'classComments': classComments}
+    # Parse the class grade and the class comments 
+    new_info = strip_class_info[strip_class_info.index(credits_amount)::]
+    class_grade = ""
+    class_comments = ""
+    for grade in list(possible_letters.keys()):
+        if grade in new_info:
+            class_grade = possible_letters.get(grade)
+            for symbol in plus_or_minus:
+                if symbol in new_info:
+                    class_grade += symbol 
+            if grade in comment_grades:
+                class_comments = class_grade 
+    
+    return {'classCreditsAmount': credits_amount, 'classGrade': class_grade, 'classComments': class_comments}

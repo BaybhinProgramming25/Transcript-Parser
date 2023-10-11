@@ -1,114 +1,95 @@
 """
-This module is responsible for finding student information, not including 
-the student's major and specialization. 
-
-The entire transcript is taken into consideration and extra information,
-such as the date and time as to when the program was invoked, is also kept
-into the state variable 
+This module is responsible for finding most
+of the student Information that is on the transcript 
 """
 
-from datetime import datetime 
+import datetime
+
+def trackStudentInformation(text: list[str], studentInfoDict : dict, option: str) -> dict: # May not be our exact return date 
+        
+        # This will hold the updated values of our pre reqs 
+        extract_pre_reqs = handlePreReqs(text, studentInfoDict)
+        studentInfoDict.update(extract_pre_reqs) # Update the original 
+
+        if option == "REQUIREMENT":
+                requirementOption(text, studentInfoDict)
+        elif option == "CUMULATIVE":
+                cumulativeOption(text, studentInfoDict)
+        
+        return studentInfoDict
 
 
-# This module uses module-bounded global variables, as we need to retain the state of these variables 
-# for when we are iterating through multiple parts of the transcript so that the program parsing behaviour
-# is as intended
-_year, _month, _day, _hour, _modifiedHour, _minutes, _timeString, _totalString, _termString, _day_month_yearString = "", "", "", "", "", "", "", "", "", ""
-_lastUpdated, _name, _idNumber, _requirementTerm, _cshp, _hoursComplete, _minutesComplete, _PMFlag = False, False, False, False, False, False, False, False
-_atYDMSection = True
+def handlePreReqs(text: list[str], studentInfoDict: dict) -> dict:
+    # First go through some few student information parameters (time, name, and id number) 
+        last_updated_time = studentInfoDict.get('Last Updated')
+        name = studentInfoDict.get('Name')
+        id_number = studentInfoDict.get('ID Number')
+        cshp_boolean = studentInfoDict.get('CSHP')
+
+        if last_updated_time is None:
+                # Handle Time
+                current_time = datetime.datetime.now()
+                formatted_date_time = current_time.strftime("%m/%d/%Y %I:%M %p")
+                studentInfoDict['Last Updated'] = formatted_date_time
+        
+        if name is None: 
+                # Handle name
+                for line_info in text:
+                        if "Name" in line_info:
+                                stripped_line = line_info.strip("Name: ").strip(" ")
+                                studentInfoDict['Name'] = stripped_line
+                                break
+        if id_number is None:
+                for line_info in text:
+                        if "Student ID" in line_info:
+                                stripped_line = line_info.strip("Student ID: ").strip(" ")
+                                studentInfoDict['ID Number'] = stripped_line
+                                break 
+        
+        # Not too sure about this approach but we don't worry too much about it 
+        if cshp_boolean is None:
+                cshp_found = False 
+                for line_info in text:
+                        if "CSHP" in line_info:
+                                cshp_found = True 
+                                break 
+                studentInfoDict['CSHP'] = "Yes" if cshp_found else "No"
 
 
-# Find and store student information that is around different parts of the transcript
-def trackStudentInformation(text, studentInformation):
-                
-                global _year, _month, _day, _hour, _modifiedHour, _minutes, _timeString, _totalString, _termString, _day_month_yearString, _lastUpdated, _name, _idNumber, _requirementTerm, _cshp, _hoursComplete, _minutesComplete, _PMFlag, _atYDMSection
+        return studentInfoDict
 
-                to_daysDate = str(datetime.now())
-                for informationInTo_daysDate in to_daysDate:
-                        if _atYDMSection == True and _lastUpdated == False:
-                                if informationInTo_daysDate == ' ':
-                                        _atYDMSection = False
-                                elif len(_year) != 4 and informationInTo_daysDate != '-':
-                                        _year += informationInTo_daysDate
-                                elif len(_month) != 2 and informationInTo_daysDate != '-':
-                                        _month += informationInTo_daysDate
-                                elif len(_day) != 2 and informationInTo_daysDate != '-':
-                                        _day += informationInTo_daysDate
-                        elif _atYDMSection == False and _lastUpdated == False:
-                                if len(_hour) != 2 and _hoursComplete == False:
-                                        _hour += informationInTo_daysDate
-                                        if len(_hour) == 2:
-                                                if _hour[0:1] == '0' and _hour[1:2] == '0': # 12 AM
-                                                        _hour = "12"
-                                                        _hoursComplete = True 
-                                                elif _hour[0:1] == '0' and _hour[1:2] != '0': # 1 AM to 9 AM
-                                                        _hour = _hour[1:2]
-                                                        _hoursComplete = True
-                                                elif _hour[0:1] == '1' and (_hour[1:2] == '0' or _hour[1:2] == '1'):
-                                                        if _hour[1:2] == '0': _hour = "10"
-                                                        else:_hour = "11"
-                                                        _hoursComplete = True
-                                                else:
-                                                        _modifiedHour = str(int(_hour) - 12)
-                                                        if _modifiedHour == "0": _modifiedHour = "12" # 12 PM
-                                                        _PMFlag = True
-                                                        _hoursComplete = True
-                                elif len(_minutes) != 2 and informationInTo_daysDate != ':':
-                                        _minutes += informationInTo_daysDate
-                                        if len(_minutes) == 2:
-                                                _minutesComplete = True
-                                if _hoursComplete == True and _minutesComplete == True:
-                                        if _month[0:1] == '0':
-                                                _month = _month[1:2]
-                                        if _day[0:1] == '0':
-                                                _day = _day[1:2]
-                                        _day_month_yearString = _month + "/" + _day + "/" + _year
-                                        if _PMFlag == True:
-                                                _timeString = _modifiedHour + ":" + _minutes + " PM"
-                                        elif _PMFlag == False:
-                                                _timeString = _hour + ":" + _minutes + " AM"
-                                        _totalString = _day_month_yearString + " " + _timeString
-                                        studentInformation['Last Updated'] = _totalString
-                                        _lastUpdated = True
-                for lineInformation in text:
-                        if "Name" in lineInformation and _name == False:
-                                name = ""
-                                characterFound = False
-                                modifiedName = lineInformation.replace("Name:", "")
-                                for characters in modifiedName:
-                                        if characters != " ":
-                                                characterFound = True
-                                                name += characters
-                                        elif characters == " " and characterFound == True:
-                                                name += characters 
-                                studentInformation['Name'] = name
-                                _name = True
-                        elif "Student ID: " in lineInformation and _idNumber == False:
-                                modifiedId = lineInformation.replace("Student ID:", "").replace(" ", "")
-                                studentInformation["ID Number"] = modifiedId
-                                _idNumber = True
-                        elif "Fall" in lineInformation and _requirementTerm == False:
-                                find_year = lineInformation.replace("Fall", "").replace(" ", "")
-                                _termString  = "Fall " + find_year 
-                                studentInformation['Requirement Term'] = _termString
-                                _requirementTerm = True
-                        elif "Spring" in lineInformation and _requirementTerm == False:
-                                find_year = lineInformation.replace("Spring", "").replace(" ", "")
-                                _termString = "Spring " + find_year
-                                studentInformation['Requirement Term'] = _termString
-                                _requirementTerm = True                                          
-                        if _lastUpdated == True and _name == True and _idNumber == True and _requirementTerm == True: break
-                if _cshp == True: #If CSHP, then set to yes
-                        studentInformation['CSHP'] = "YES"
-                else: #Otherwise, set CSHP to no
-                        studentInformation['CSHP'] = "NO" 
+def requirementOption(text: list[str], studentInfoDict: dict) -> dict:
+        index_of_requirement = -1
 
+        for index, line_info in enumerate(text):
+                if "Beginning" in line_info:
+                        index_of_requirement = index; 
 
-# We need to reset these global variables for other sets of transcripts that the user wish to also input. This is so
-# we can reset the program to its initial behaviour
-def resetGlobalVariablesForStudentInfo():
-        global _year, _month, _day, _hour, _modifiedHour, _minutes, _timeString, _totalString, _termString, _day_month_yearString, _lastUpdated, _name, _idNumber, _requirementTerm, _cshp, _hoursComplete, _minutesComplete, _PMFlag, _atYDMSection
-        _year, _month, _day, _hour, _modifiedHour, _minutes, _timeString, _totalString, _termString, _day_month_yearString = "", "", "", "", "", "", "", "", "", ""
-        _lastUpdated, _name, _idNumber, _requirementTerm, _cshp, _hoursComplete, _minutesComplete, _PMFlag = False, False, False, False, False, False, False, False
-        _atYDMSection = True
+        studentInfoDict['Requirement Term'] = text[index_of_requirement+2]
+        return studentInfoDict
 
+def cumulativeOption(text: list[str], studentInfo: dict) -> dict: 
+        index_of_cumulative = -1
+
+        for index, line_info in enumerate(text):
+                if "Career" in line_info:
+                        index_of_cumulative = index 
+                        break 
+        
+        # Find the Cumulative GPA 
+        cumulative_gpa_string = text[index_of_cumulative+1].strip("Cum GPA:")
+        index_of_cumulative_totals = cumulative_gpa_string.index("Cum Totals")
+        cumulative_gpa_value = cumulative_gpa_string[0:index_of_cumulative_totals]
+
+        # Find the Cumulative Total 
+        cumulative_section = cumulative_gpa_string[index_of_cumulative_totals:].strip("Cum Totals")
+        first_whitespace_index = cumulative_section.index(' ')
+        totals_value_string = cumulative_section[first_whitespace_index+1:]
+        second_whitespace_index = totals_value_string.index(' ')
+
+        totals_value = totals_value_string[0:second_whitespace_index]
+        
+        studentInfo['Cumulative GPA'] = cumulative_gpa_value
+        studentInfo['Cumulative Credits'] = totals_value
+
+        return studentInfo 

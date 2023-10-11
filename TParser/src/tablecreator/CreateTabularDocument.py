@@ -12,6 +12,7 @@ that are needed for that particular specialization
 
 """
 
+# This needs to get seriously rewritten, which we will do after the semester 
 
 import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill
@@ -28,7 +29,7 @@ _border_style_right = Border(right=Side(style='thin'))
 # This is the entry point into creating the document. This function creates two sheets and calls 3 functions, each of which is 
 # responsible for making a table that is to be displayed in the output.
 # This function returns the name of the tabular document that is created 
-def createDocument(fileNameInput, studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCSECourses, mathRequiredCourses, scienceCourses, sbcCourses, classesPerSemester, specalizeISECourses, specializeCSECourses) -> str:
+def createDocument(fileNameInput, studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCSECourses, mathRequiredCourses, scienceCourses, sbcCourses, classesPerSemester, specalizeISECourses, specializeCSECourses) -> list:
  
     workbook = openpyxl.Workbook()
 
@@ -53,8 +54,7 @@ def createDocument(fileNameInput, studentInformation, upperDivisionCourses, lowe
 
 
     fileName = fileNameInput + '.xlsx'
-    workbook.save(fileName)
-    return fileName
+    return [workbook, fileName]
 
 # This function is responsible for creating the basic student information table 
 # Similar to the other functions, this function does both creation of the table
@@ -156,14 +156,9 @@ def createStudentTableInformation(sheet, studentInformation) -> int:
     return end_col+2 # We will start at a second col
         
 
-# This function is responsible for creating the table that represents the classes the student took per semester 
-# Similar to the other functions, this function does both creation of the table
-# and the inputting of information into the table once the table has been made
-# 
-# The function returns the column value that is to be used for the next table  
+# Function is responsible for keeping track of the classes the student took per semester 
 @staticmethod
-def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
-
+def createPlanningGrid(sheet: any, starter_column: int, classesPerSemester: dict) -> int:
   
     row_value_start = 1 # Subject to change 
     col_value_start = starter_column # Subject to change
@@ -175,29 +170,30 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
     acceptable_grades = ('A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'XFER')
 
     # ********************* THERE IS A POSSIBLE INFINITE LOOP HERE SO WE NEED TO INVESTIGATE ***********************
+    
     lengthOfClasses = len(classesPerSemester)
 
-    # Hopefully we have fixed the infinite loop here 
-    # What if I take a different approach here 
+    priority_term = {'Fall': 'Winter', 'Winter': 'Spring', 'Spring': 'Summer', 'Summer': 'Fall'}
 
-    priorityTerm = {'Fall': 'Winter', 'Winter': 'Spring', 'Spring': 'Summer', 'Summer': 'Fall'}
-
-    # If the infinite loop still persists after this, then we are going to change the way we do this 
     while (lengthOfClasses % 4) != 0: 
            
         keyAtLastIndex = list(classesPerSemester)[-1] # Grab the last semester 
         # Once we get the key at the last index, we then want to parse this information 
         whiteSpaceIndex = keyAtLastIndex.index(' ')
-        semesterTerm = keyAtLastIndex[0:whiteSpaceIndex]
-        semesterYear = keyAtLastIndex[whiteSpaceIndex+1:]
+        semesterTerm, semesterYear = keyAtLastIndex[0:whiteSpaceIndex], keyAtLastIndex[whiteSpaceIndex+1:]
 
-        getNewTerm = priorityTerm[semesterTerm]
-        if getNewTerm == 'Winter': semesterYear = int(semesterYear) + 1 # Add to the semester Year
+        getNewTerm = priority_term[semesterTerm]
+
+        if getNewTerm == 'Winter': 
+            semesterYear = int(semesterYear) + 1 # Add to the semester Year
+
         listOfClassesInFakeSemester = [] # Fake classes, so empty list 
-        classesPerSemester[str(getNewTerm) + ' ' + str(semesterYear)] = listOfClassesInFakeSemester # We add no class information
+        classesPerSemester[f'{semesterTerm} {semesterYear}'] = listOfClassesInFakeSemester # We add no class information
         lengthOfClasses = lengthOfClasses + 1
 
-        if (lengthOfClasses % 4) == 0: break # Just to ensure we leave the while loop
+        if (lengthOfClasses % 4) == 0: 
+            break 
+
     # ********************* THERE IS A POSSIBLE INFINITE LOOP HERE SO WE NEED TO INVESTIGATE ******************************
 
 
@@ -217,11 +213,9 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
 
     for keys in classesPerSemester:
         getList = classesPerSemester[keys]
-        lengthOfList = len(getList)
-        if lengthOfList > highestListValue:
-            highestListValue = lengthOfList
-    
-    highestListValue = highestListValue + 1 
+        if len(getList) > highestListValue:
+            highestListValue = len(getList)
+    highestListValue += 1
 
     starting_row = row_value_start + 1 # This only gets incremented when we hit starting_column value of 11
     starting_column = col_value_start # We increment this until we hit the value of K (which is the value of 11 )
@@ -237,11 +231,14 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
     while lengthOfListKeys != 0:
 
         getFirstIndex = keys_list[index]
-        if getFirstIndex == last_key: recentClass = True
+
+        if getFirstIndex == last_key: 
+            recentClass = True
+
         index += 1
         indexOfWhiteSpace = getFirstIndex.index(' ')
-        seasonInformation = getFirstIndex[0:indexOfWhiteSpace]
-        seasonYear = getFirstIndex[indexOfWhiteSpace+1:]
+        seasonInformation, seasonYear = getFirstIndex[0:indexOfWhiteSpace], getFirstIndex[indexOfWhiteSpace+1:]
+
 
         if starting_column < col_value_end: 
 
@@ -252,30 +249,37 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
             sheet.cell(row=starting_row, column=starting_column+1).border = all_sides_border
 
             # After we added the information, we now add the classes at the bottom
-
-            getList = classesPerSemester[seasonInformation + " " + seasonYear]
+            getList = classesPerSemester[f'{seasonInformation} {seasonYear}']
+            
             tempStartingRow = starting_row
             tempStartingCol = starting_column
             classCounter = 0
             creditsCounter = 0
+
             while classCounter != highestListValue:
+
                 try:
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol).value = getList[0].courseName if (recentClass != True and getList[0].grade != 'I') else getList[0].courseName + "*"
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol).border = _border_style_left
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol+1).value =  float(getList[0].credits) if (getList[0].grade in acceptable_grades) else (float(0) if str(getList[0].grade) == "" else str(getList[0].grade))
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol+1).border = _border_style_right
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol+1).alignment = Alignment(horizontal='right')
-                    creditsCounter += float(getList[0].credits)
+
+                    try:
+                        creditsCounter += float(getList[0].credits)
+                    except: pass 
+
                     getList.pop(0)
                     tempStartingRow += 1
                     classCounter += 1
                 except:
+                    
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol).border = _border_style_left
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol+1).border = _border_style_right
                     tempStartingRow += 1
                     classCounter += 1
-            # Reached here when we are done filling out the classes, so now we need to put the total credits
 
+            # Reached here when we are done filling out the classes, so now we need to put the total credits
             # We use the highestListValue for this 
 
             sheet.cell(row=starting_row+highestListValue, column=starting_column).value = "Total: "
@@ -307,6 +311,7 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
             creditsCounter = 0
 
             while classCounter != highestListValue:
+                
                 try:
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol).value = getList[0].courseName if (recentClass != True and getList[0].grade != 'I') else getList[0].courseName + "*"
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol).border = _border_style_left
@@ -322,11 +327,7 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
                     sheet.cell(row=tempStartingRow+1, column=tempStartingCol+1).border = _border_style_right
                     tempStartingRow += 1
                     classCounter += 1
-
-            # Reached here when we are done filling out the classes, so now we need to put the total credits
-
-            # We use the highestListValue for this 
-
+          
             sheet.cell(row=starting_row+highestListValue, column=starting_column).value = "Total: "
             sheet.cell(row=starting_row+highestListValue, column=starting_column).border = all_sides_border
             sheet.cell(row=starting_row+highestListValue, column=starting_column+1).value = creditsCounter
@@ -345,15 +346,8 @@ def createPlanningGrid(sheet, starter_column, classesPerSemester) -> int:
 
     return col_value_end+2 # 2 columns apart space 
 
-# This function is responsible for creating the table that represents the major required courses
-# Similar to the other functions, this function does both creation of the table
-# and the inputting of information into the table once the table has been made
-# 
-# It is also worth nothing that this function calls other functions that creates specific parts of the table
-# This function does not create the table in one go but rather rely on other function calls to construct the 
-# table part by part 
-#
-# The function returns the column value that is to be used for the next table 
+
+# Function is responsible for creating the Major Requirements of a specific student 
 @staticmethod
 def createMajorRequirements(sheet, sheet2, starter_column, studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCSECourses, mathRequiredCourses, scienceCourses, sbcCourses, specalizeISECourses, specializeCSECourses) -> int:
 
@@ -483,7 +477,7 @@ def handleLowerDivisonCourses(sheet, row_value_start, column_value_start, column
         row_limit = 3 # Will always be like that
         lower_division_data = ['CSE 114 (TECH)', 'CSE 214', 'ISE 218']
 
-    returnNextRowStarter = excelFileInputterAlgorithm(sheet, row_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, lower_division_data, lowerDivisionCourses, studentInformation)
+    returnNextRowStarter = excelFileInputterAlgorithm(sheet, row_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, lower_division_data, lowerDivisionCourses)
     return returnNextRowStarter
 
 # This function is responsible for performing sanitization on the upper division courses and calling a larger function
@@ -540,12 +534,14 @@ def handleUpperDivisionCourses(sheet, upper_start, column_value_start, column_va
     string340 = "BUS 340 (TECH)" if flag320 == False else "ISE 320"
 
     row_limit = 0
+
     if studentInformation['Major'] == "CSE": # Need to check if the student is part of CSHP 
         getCSHPValue = studentInformation['CSHP']
         if getCSHPValue == "NO": 
             row_limit = 8
         else: 
             row_limit = 10
+
         if flag350 == True and flag385 == True:
             upper_division_data = ['CSE/ISE 300 (SPK/WRTD)', 'CSE 350', 'CSE 310', 'CSE/ISE 312 (CER/ESI/STAS)', 'CSE 316 (ESI/EXP+/SBS+/STEM+)', 'CSE 320', 'CSE 385', 'CSE 416 (ESI/EXP+/SBS+/STEM+)'] if getCSHPValue == "NO" else ['CSE/ISE 300 (SPK/WRTD)', 'CSE 350', 'CSE 310', 'CSE/ISE 312 (CER/ESI/STAS)', 'CSE 316 (ESI/EXP+/SBS+/STEM+)', 'CSE 320', 'CSE 385', 'CSE 416 (ESI/EXP+/SBS+/STEM+)', 'CSE 495', 'CSE 496']
         elif flag350 == False and flag385 == True:
@@ -554,11 +550,12 @@ def handleUpperDivisionCourses(sheet, upper_start, column_value_start, column_va
             upper_division_data = ['CSE/ISE 300 (SPK/WRTD)', 'CSE 350', 'CSE 310', 'CSE/ISE 312 (CER/ESI/STAS)', 'CSE 316 (ESI/EXP+/SBS+/STEM+)', 'CSE 320', 'CSE/MAT 373', 'CSE 416 (ESI/EXP+/SBS+/STEM+)'] if getCSHPValue == "NO" else ['CSE/ISE 300 (SPK/WRTD)', 'CSE 350', 'CSE 310', 'CSE/ISE 312 (CER/ESI/STAS)', 'CSE 316 (ESI/EXP+/SBS+/STEM+)', 'CSE 320', 'CSE/MAT 373', 'CSE 416 (ESI/EXP+/SBS+/STEM+)', 'CSE 495', 'CSE 496']
         else:
             upper_division_data = ['CSE/ISE 300 (SPK/WRTD)', 'CSE 303', 'CSE 310', 'CSE/ISE 312 (CER/ESI/STAS)', 'CSE 316 (ESI/EXP+/SBS+/STEM+)', 'CSE 320', 'CSE/MAT 373', 'CSE 416 (ESI/EXP+/SBS+/STEM+)'] if getCSHPValue == "NO" else ['CSE/ISE 300 (SPK/WRTD)', 'CSE 303', 'CSE 310', 'CSE/ISE 312 (CER/ESI/STAS)', 'CSE 316 (ESI/EXP+/SBS+/STEM+)', 'CSE 320', 'CSE/MAT 373', 'CSE 416 (ESI/EXP+/SBS+/STEM+)', 'CSE 495', 'CSE 496']
+    
     elif studentInformation['Major'] == "ISE": # No CSHP for ISE students
         row_limit = 4 
         upper_division_data = [f'CSE/ISE 312 (CER/ESI/STAS)', f'ISE 305 (EXP+/TECH)', f'{string310}', f'{string340}'] # Also look for the course equivalents while inputting the information 
     
-    returnNextSectionRowStarter = excelFileInputterAlgorithm(sheet, upper_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, upper_division_data, upperDivisionCourses, studentInformation)
+    returnNextSectionRowStarter = excelFileInputterAlgorithm(sheet, upper_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, upper_division_data, upperDivisionCourses)
     return returnNextSectionRowStarter
 
 # This function is responsible for  calling a larger function that will create part of the table and input technical courses afterwards 
@@ -569,7 +566,7 @@ def handleTechnicalCourses(sheet, technical_row_starter, column_value_start, col
 
     row_limit = 4 # Let's keep this at 4 to keep things consistent 
 
-    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, technical_row_starter, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, [], technicalCSECourses, studentInformation)
+    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, technical_row_starter, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, [], technicalCSECourses)
     return nextSectionRowStarter
 
 
@@ -627,7 +624,7 @@ def handleMathRequiredCourses(sheet, math_start, column_value_start, column_valu
             row_limit = 4
 
 
-    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, math_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, [], math_final, studentInformation)
+    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, math_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, [], math_final)
     return nextSectionRowStarter
 
 # This function is responsible for performing sanitization on the science required courses and calling a larger function
@@ -691,7 +688,7 @@ def handleScienceRequiredCourses(sheet, row_starter, column_value_start, column_
     elif laboratoryComboFound == True and creditsCounter >= 9: row_limit = numberOfIterations
     elif creditsCounter < 9: row_limit = 4 # Even if the lab is found or not found, if the credits is less than 4, then the row_limit is set to 4
 
-    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, row_starter, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, [], scienceCourses, studentInformation)
+    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, row_starter, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, [], scienceCourses)
     return nextSectionRowStarter
 
 # This function is responsible for creating a separate table for handling the ISE upper division writing requirement
@@ -724,7 +721,7 @@ def handleUpperDivisionWritingISE(sheet, writing_start, column_value_start, colu
 
     #Only need to parse 1 class, so row_limit is going to be set to 1
     row_limit = 1 # For only 1 class 
-    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, writing_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, writing_division_data, upperDivisionCourses, studentInformation) # Hopefully this will put the information
+    nextSectionRowStarter = excelFileInputterAlgorithm(sheet, writing_start, column_value_start, column_value_end, row_limit, valuesToPopAndInsert, writing_division_data, upperDivisionCourses) # Hopefully this will put the information
     return nextSectionRowStarter 
 
 
@@ -796,7 +793,7 @@ def handleSBCsCourses(sheet, row_starter, column_value_start, column_value_end, 
 
 # This is the larger function that is responsible for creating parts of a table and inputting information into those parts 
 @staticmethod
-def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_value_end, row_limit, insert_dictionary, class_data, category_dictionary, studentInformation):
+def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_value_end, row_limit, insert_dictionary: dict, class_data: dict, category_dictionary: dict):
 
     # These courses gets factored into GPA 
     acceptable_grades = {'A': 4.00, 'A-': 3.67, 'B+': 3.33, 'B': 3.00, 'B-': 2.67, 'C+': 2.33, 'C': 2.00, 'C-': 1.67, 'D+': 1.33, 'D': 1.00, 'F': 0.00, 'IF': 0.00, 'Q': 0.00}
@@ -808,6 +805,7 @@ def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_valu
 
     initial_column = column_value_start 
     keys_in_dict = list(insert_dictionary.keys())
+
     while len(insert_dictionary) != 0:
         sheet.cell(row=row_value, column=initial_column).value = keys_in_dict[0]
         sheet.cell(row=row_value, column=initial_column).font = Font(size=10, name='Calibri', bold=True)
@@ -824,25 +822,22 @@ def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_valu
     row_lower = row_value + 1
     row_max = row_lower + row_limit
 
-    keys_of_courses = []
-    if len(class_data) == 0: # Means no preassumed data, this is mainly for the electives
-        keys_of_courses = list(category_dictionary.keys()) # Create a list of keys
-    else: # There is preassumed data, so this is mainly for lower and upper division courses 
-        keys_of_courses = list(class_data)
-    
+    # Define our keys_of_courses depending on our class_data variable 
+    keys_of_courses = list(category_dictionary.keys()) if not class_data else list(class_data)
+  
+
     # Injects the class information into the cells: just the class CourseName though 
-    while row_lower != row_max: # Injects some presumed data 
+    while row_lower != row_max:
+         # Injects some presumed data 
         sheet.merge_cells(start_row=row_lower, start_column=column_value_start, end_row=row_lower, end_column=column_value_start+2)
         sheet.merge_cells(start_row=row_lower, start_column=column_value_end-1, end_row=row_lower, end_column=column_value_end)
+
         try:
-            keyFirst = keys_of_courses[0]
-            courseName = ""
-            if len(class_data) == 0: # Means we perform injection of class info rather than preassumed data 
-                courseName = category_dictionary[keyFirst].courseName # Injection
-            else: # Means there is some pre assumed data
-                courseName = keyFirst # Assumption 
+            courseName = category_dictionary[keys_of_courses[0]].courseName if not class_data else keys_of_courses[0]
             sheet.cell(row=row_lower, column=column_value_start).value = courseName
+
         except: pass
+
         sheet.cell(row=row_lower, column=column_value_start).font = Font(size=10)
         sheet.cell(row=row_lower, column=column_value_start).border = _border_style_left # Border to Lower Division
         sheet.cell(row=row_lower, column=column_value_start+3).border = _border_style_left
@@ -851,6 +846,7 @@ def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_valu
         sheet.cell(row=row_lower, column=column_value_start+6).border = _border_style_left
         sheet.cell(row=row_lower, column=column_value_end-1).border = _border_style_left
         sheet.cell(row=row_lower, column=column_value_end).border = _border_style_right
+
         try:
             keys_of_courses.pop(0)
         except:
@@ -866,8 +862,8 @@ def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_valu
     # Begin inserting data. This is where we actually insert the class information
     getListOfSortedKeys = list(sorted(category_dictionary.keys()))
     lengthOfList = len(getListOfSortedKeys)
-    creditsCounter = 0
-    creditsValue = 0
+    
+    creditsCounter, creditsValue = 0, 0
 
     searching_start_row = row_value + 1
     row_offset = 1

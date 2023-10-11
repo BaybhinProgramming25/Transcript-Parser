@@ -522,10 +522,3 @@ def specalizationCompleteQuestionLine(sheet, row_value, column_value_start, colu
     else:
         sheet.cell(row=row_max, column=column_value_start).value = f'Status: Specialization Incomplete ({total_class_count} of {class_amount_needed})'
         return "No"
-
-
-
-
-
-    
-
