@@ -1,15 +1,21 @@
-The purpose of this code is to convert CSE Students at Stony Brook Univeristy PDF of their transcripts into a tabular, readable format. The code will parse the content in the transcript and will then generate three tables in an XLSX sheet. 
+This software enables users to place a PDF of their transcript, which will output an XLSX file that displays
+their graduation checklist. Note that these PDFs only work for students that are **computer science majors** or 
+**information systems majors**. 
 
-Note: There were some libraries used that may require downloading on the user-end.
+More about the program: This program is a **CLI** based software that prompts users to input a PDF of their choosing
+for it to be **parsed**. The data that is parsed is then store onto **MongoDB** with the help of the **FastAPI** to handle user request handling as well as perform **CRUD** based operations 
+
+Note: There were some libraries used that may require downloading on the user-end using **pip install**
 
 Modules Used:
 - threading
 - PyPDF2
 - os
-- shututil
 - openpyxl
 - sys
-- typing
+- requests 
+- json 
+- datetime
 
 How to Run The Code: 
 
@@ -17,10 +23,15 @@ How to Run The Code:
 
 2) Within the 'src' folder, look for the python module titled 'Main'
 
-3) Run the code in the module, prompting an input of the name of the transcript to be parsed in an input folder
+3) Run the code in the module. This will prompt the user with a set of **4** options 
 
-4) Type in the name of the transcript with the input path specified and press 'Enter' (i.e. if you have a transcript in the input folder titled 'Example.pdf', then you would need to specify the user input as: input\Example.pdf
+4) If a student wishes to **CREATE** an XLSX file, they can select **option 1**, which would prompt them
+to enter the PDF file to be parsed. After the file has been parsed, the student may choose to **UPDATE** 
+the file if it already exists 
 
-5) An XLSX sheet will be produced with the same name as the transcript in the 'output' folder
+5) If a student wishes to **GET** an XLSX file, they can select **option 2**, which would prompt them to enter 
+the name of the file that is stored on the backend. After selecting the name of the file, the file will appear in the **output_xlsx** folder 
+
+-- MORE STEPS TO BE ADDED --
 
 6) Repeat until requests have been satisifed, performing graceful termination by typing the word 'exit' pressing 'Enter'
