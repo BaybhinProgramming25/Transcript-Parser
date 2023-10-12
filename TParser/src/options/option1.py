@@ -1,5 +1,5 @@
 # This is for creating the Transcript File 
-import PyPDF2, os, threading, shutil, openpyxl
+import PyPDF2, threading, os
 
 # Import the needed functions for the various modules 
 from parser.PlanBackwards import studentInfoBackwards, calculateUpperDivCredits
@@ -8,7 +8,7 @@ from parser.ParseClasses import *
 from tablecreator.CreateTabularDocument import *
 
 # Import the needed functions for sending the xlsx file to the backend 
-import requests 
+import requests, json
 
 def option1():
     
@@ -17,7 +17,8 @@ def option1():
 
     while True:
 
-        pdf_file_name = str(input("Specify the name of the PDF file in the input folder. Otherwise, type exit to end the transaction: \n"))
+        pdf_file_name = str(input("Specify the name of the PDF file in the input folder (without .pdf). Otherwise, type exit to end the transaction: \n"))
+        pdf_file_name_extended = pdf_file_name + '.pdf'
 
         if pdf_file_name.lower() == "exit": return 
 
@@ -25,10 +26,10 @@ def option1():
         input_folder_path = os.getcwd() + "\\TParser\\input\\"
         input_folder_files = os.listdir(input_folder_path)
 
-        if pdf_file_name in input_folder_files:
-            directory_name = input_folder_path + pdf_file_name
+        if pdf_file_name_extended in input_folder_files:
+            directory_name = input_folder_path + pdf_file_name_extended
             break 
-        else: print("The file does not exist. Please input a valid file name\n")
+        else: print("The file does not exist. Please try again and input a valid file name\n")
     
     # 1) Open the file in read-binary mode 
     file = open(directory_name, "rb")
@@ -66,7 +67,7 @@ def option1():
     if check_major_exists == "CSE" or check_major_exists == "ISE":
         if studentInformation.get('Spec') is None: studentInformation['Spec'] = "" # Keep as empty string
     else: 
-        print("Student is not a CSE or ISE major. Please input a different transcript\n") 
+        print("Student is not a CSE or ISE major. Please input a different transcript. Returning to the options menu\n") 
         return 
 
     for i in range(total_pages):
@@ -93,43 +94,69 @@ def option1():
         thread5.join()
         thread6.join()
     
-    # 5) Get the name of the transcript
-    excel_file = directory_name[::directory_name.index('.')] + '.xlsx'
-
-    # 6) Check to see if the file exists or the file is currently opened 
-    fileOpened, fileExists = False, False 
-
-    if os.path.isfile(f'{os.getcwd()}\\TParser\\output_xlsx\\{excel_file}'): 
-        fileExists = True
-        try: 
-            wb = openpyxl.load_workbook(excel_file, read_only=True)
-            wb.close() # We close the workbook immediately to prevent file descriptor errors 
-        except IOError: 
-            for filename in os.listdir('output_xlsx'):
-                if filename.startswith(f'~${excel_file}'):
-                    fileOpened = True
-                else: # The file is not there, meaning it is closed
-                    fileOpened = False
-
-    # 7) Create the document and throw error if need be 
-    if not fileOpened or not fileExists:
         
-        # Create Document
-        fileNameInput = pdf_file_name.strip(".pdf")
-        workbook_and_file = createDocument(fileNameInput, studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCSECourses, mathRequiredCourses, scienceCourses, sbcCourses, classesPerSemester, specializeCoursesISE, specalizeCoursesCSE) 
-        
-        # Create the file_location as to where we are going to put the transcript 
-        file_location = f'{os.getcwd()}\\TParser\\output_xlsx\\{workbook_and_file[1]}'
-
-        # Now we make a POST request and convert the file to a CSV and store it to the backend 
-        json_to_send = {'file_name': fileNameInput, 'file': file_location}  
-        send_transcript = requests.post("http://127.0.0.1:8000", json=json_to_send)
-
-        if send_transcript: print("\nSuccesfully Created the file!", end="\n\n")
-        else: print("\nThe transcript failed to be made!", end="\n\n")
-        
-        return 
+    # We then get the file name 
+    fileNameInput = pdf_file_name.strip(".pdf")
     
-    else:
-        print("Please close the file first before proceeding\n")
-        return
+    # Create the file_location as to where we are going to put the transcript 
+    file_location = f'{os.getcwd()}\\TParser\\output_xlsx\\{fileNameInput}.xlsx'
+
+    # Create a large dictionary that will store needed information 
+    buffer_to_store = {
+
+        'student_information': studentInformation, # This is already in JSON 
+        'lower_division_courses': convertObjectsToJSON(lowerDivisionCourses), # We need to convert the rest to JSON 
+        'upper_division_courses': convertObjectsToJSON(upperDivisionCourses),
+        'technical_cse_courses': convertObjectsToJSON(technicalCSECourses),
+        'math_required_courses': convertObjectsToJSON(mathRequiredCourses),
+        'science_courses': convertObjectsToJSON(scienceCourses),
+        'sbc_courses': convertObjectsToJSON(sbcCourses),
+        'specialize_courses_ISE': convertObjectsToJSON(specializeCoursesISE),
+        'specialize_courses_CSE': convertObjectsToJSON(specalizeCoursesCSE),
+        'classes_per_semester': convertObjectsToJSON(classesPerSemester)
+    }
+
+    
+    # Now we make a POST request and convert the file to a CSV and store it to the backend 
+    json_to_send = {'file_name': fileNameInput, 'file': file_location, 'file_info_buffer': buffer_to_store}  
+    
+    # POST Request 
+    send_transcript_response = requests.post("http://127.0.0.1:8000", json=json_to_send)
+
+    # Display the JSON returned to us from the POST request 
+    send_transcript_response_json = send_transcript_response.json()
+    print(f'HTTP Status Code: {send_transcript_response.status_code}: {send_transcript_response_json.get("message")}', end="\n\n")
+
+    if "UPDATE" in send_transcript_response_json.get('message'):
+
+        update_request_input = input(str("Do you wish to UPDATE the file? (Y/N): "))
+
+        if update_request_input == "Y" or update_request_input == "y":
+            
+            # PUT request 
+            send_transcript_update = requests.put("http://127.0.0.1:8000", json=json_to_send)
+            
+            # Display the JSON returned to us from the PUT request
+            send_transcript_update_json = send_transcript_update.json()
+            print(f'HTTP Status Code: {send_transcript_update.status_code}: {send_transcript_update_json.get("message")}', end="\n\n")
+
+        elif update_request_input == "N" or update_request_input == "n":
+            print("Request to UPDATED Denied. Returning program to the options menu\n")
+        else:
+            print("Unrecognized Command. Returing program back to the options menu\n")
+    return 
+  
+    
+def convertObjectsToJSON(dictionary_to_convert: dict) -> dict:
+    
+    dictionary_to_return = {}
+
+    for keys, values in dictionary_to_convert.items():
+        if type(values) == list:
+            dictionary_to_return[keys] = []
+            for value in values:
+                dictionary_to_return[keys].append(json.dumps(value.to_json()))
+        else:
+            dictionary_to_return[keys] = json.dumps(values.to_json())
+    
+    return dictionary_to_return

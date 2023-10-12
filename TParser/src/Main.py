@@ -8,8 +8,8 @@ tabular document as an XLSX file to be sent in the output folder
 Note: This program is only meant for CSE or ISE students in the major
 """
 
-
-from options import option1, option2
+from backend.mongo import client
+from options import option1, option2, option3
 
 def main():
 
@@ -18,9 +18,8 @@ def main():
               # Display the 3 options
               print("\n1) POST a XLSX file")
               print("2) GET a XLSX File")
-              print("3) UPDATE a XLSX File")
-              print("4) DELETE a XLSX file")
-              print("5) Exit the program\n")
+              print("3) DELETE a XLSX file")
+              print("4) Exit the program\n")
              
               user_option = str(input("Please Select One Of The Numbers: "))
 
@@ -29,12 +28,10 @@ def main():
               elif user_option == "2": # GET
                     option2.option2()
               elif user_option == "3": # DELETE
-                    print("CODE TO BE IMPLEMENTED")
-              elif user_option == "4":
-                    print("CODE TO BE IMPLEMENTED")
-              elif user_option == "5": # Exit program
-                    
+                    option3.option3()
+              elif user_option == "4": # Exit program   
                     print("Program Ended!")
+                    client.close() # Close the client 
                     break 
               else:
                     print("Invalid Option! Please select a valid option")

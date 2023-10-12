@@ -7,3 +7,6 @@ class SimpleClassObject:
         self.grade = grade
         self.term = term
         self.year = year
+    
+    def to_json(self):
+        return  {'courseName': self.courseName, 'credits': self.credits, 'grade': self.grade, 'term': self.term, 'year': self.year }

@@ -9,3 +9,14 @@ class SBCCourse:
         self.term = term
         self.year = year
         self.comments = comments
+    
+    def to_json(self):
+        return  {
+                'sbc': self.sbc,
+                'courseName': self.courseName,
+                'grade': self.grade,
+                'credits': self.credits,
+                'term': self.term,
+                'year': self.year,
+                'comments': self.comments
+                }

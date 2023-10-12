@@ -15,6 +15,7 @@ that are needed for that particular specialization
 # This needs to get seriously rewritten, which we will do after the semester 
 
 import openpyxl
+
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.styles.borders import Border, Side
 from tablecreator.CreateISESpecDocument import createISESpecializationDocument
@@ -29,7 +30,7 @@ _border_style_right = Border(right=Side(style='thin'))
 # This is the entry point into creating the document. This function creates two sheets and calls 3 functions, each of which is 
 # responsible for making a table that is to be displayed in the output.
 # This function returns the name of the tabular document that is created 
-def createDocument(fileNameInput, studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCSECourses, mathRequiredCourses, scienceCourses, sbcCourses, classesPerSemester, specalizeISECourses, specializeCSECourses) -> list:
+def createDocument(studentInformation, upperDivisionCourses, lowerDivisionCourses, technicalCSECourses, mathRequiredCourses, scienceCourses, sbcCourses, classesPerSemester, specalizeISECourses, specializeCSECourses):
  
     workbook = openpyxl.Workbook()
 
@@ -51,16 +52,11 @@ def createDocument(fileNameInput, studentInformation, upperDivisionCourses, lowe
         createPlanningGrid(sheet, starterColumnForPlanning, classesPerSemester)
     else: # Specialization Not Declared
         createPlanningGrid(sheet, starterColumnForSpecTable, classesPerSemester)
+    
+    return workbook 
 
 
-    fileName = fileNameInput + '.xlsx'
-    return [workbook, fileName]
-
-# This function is responsible for creating the basic student information table 
-# Similar to the other functions, this function does both creation of the table
-# and the inputting of information into the table once the table has been made
-# 
-# The function returns the column value that is to be used for the next table  
+# This function is responsibel for parsing the student table information 
 @staticmethod
 def createStudentTableInformation(sheet, studentInformation) -> int:
 
@@ -795,6 +791,7 @@ def handleSBCsCourses(sheet, row_starter, column_value_start, column_value_end, 
 @staticmethod
 def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_value_end, row_limit, insert_dictionary: dict, class_data: dict, category_dictionary: dict):
 
+
     # These courses gets factored into GPA 
     acceptable_grades = {'A': 4.00, 'A-': 3.67, 'B+': 3.33, 'B': 3.00, 'B-': 2.67, 'C+': 2.33, 'C': 2.00, 'C-': 1.67, 'D+': 1.33, 'D': 1.00, 'F': 0.00, 'IF': 0.00, 'Q': 0.00}
 
@@ -897,6 +894,7 @@ def excelFileInputterAlgorithm(sheet, row_value, column_value_start, column_valu
                     getColumnDescription = getColumnDescription.lower()
                     classObject = category_dictionary[getFirstIndex]
                     field_value = getattr(classObject, getColumnDescription)
+
                     try: 
                         sheet.cell(row=searching_start_row, column=insertion_start).value = float(field_value) # Put the grade of the object
                         if getColumnDescription == "credits":

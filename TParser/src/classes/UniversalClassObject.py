@@ -9,3 +9,13 @@ class UniversalClassObject:
         self.year = year
         self.comments = comments
     
+    def to_json(self):
+        return  {
+                'courseName': self.courseName,
+                'grade': self.grade,
+                'credits': self.credits,
+                'term': self.term,
+                'year': self.year,
+                'comments': self.comments
+                }
+    
