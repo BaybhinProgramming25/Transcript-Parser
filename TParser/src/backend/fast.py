@@ -76,8 +76,17 @@ async def updateExcel(excelInfo: dict):
 
 # Will be implemented soon 
 @app.delete("/")
-async def deleteExcel(excelInfo: dict):
-    print("TO BE IMPLEMENTED")
-    # We also want to make sure that if a user deletes the a file in the output folder,
-    # Then that will also get reflected in the backend 
+async def deleteExcel(fileToDelete: dict):
 
+    file_to_find = fileToDelete.get('file_name')
+
+    document = collection_name.find_one({'xlsx_name': file_to_find})
+
+    if document is None:
+        data = {"message": "Document Not Found"}
+        return JSONResponse(content=data, status_code=404)
+    else:
+
+        collection_name.delete_one({'xlsx_name': file_to_find})
+        data = {"message": "Document Successfully Deleted!"}
+        return JSONResponse(content=data, status_code=200)

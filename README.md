@@ -32,6 +32,6 @@ the file if it already exists
 5) If a student wishes to **GET** an XLSX file, they can select **option 2**, which would prompt them to enter 
 the name of the file that is stored on the backend. After selecting the name of the file, the file will appear in the **output_xlsx** folder 
 
--- MORE STEPS TO BE ADDED --
+6) If a student wishes to **DELETE** an XLSX file, they can select **option 3**, which would prompt them to enter the name of the file that is stored on the backend. After selecting the name of the file, not only will it delete the file on the backend, but if the file exists in the output_xlsx directory, the file will be deleted there as well.
 
-6) Repeat until requests have been satisifed, performing graceful termination by typing the word 'exit' pressing 'Enter'
+7) Repeat such requests until the user is satisfied. If so, the user can select **option 4** to terminate the program and close connection to the database 
