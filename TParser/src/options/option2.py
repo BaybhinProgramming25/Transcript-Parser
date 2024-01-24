@@ -1,6 +1,6 @@
 # GET an XLSX fie 
 
-from backend.mongo import collection_name
+from backend.client import collection_name
 from tablecreator.CreateTabularDocument import createDocument
 
 from classes.UniversalClassObject import *
@@ -16,7 +16,7 @@ def option2():
 
     if not database_documents:
 
-        print("There are no documents in the database. Please select option 2 to create a transcript\n")
+        print("There are no documents in the database. Please select option 1 to create a transcript\n")
         return
     
     else:

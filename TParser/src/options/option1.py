@@ -22,8 +22,9 @@ def option1():
 
         if pdf_file_name.lower() == "exit": return 
 
+
         # Now check to see if this file exists
-        input_folder_path = os.getcwd() + "\\TParser\\input\\"
+        input_folder_path = "..\\input\\"
         input_folder_files = os.listdir(input_folder_path)
 
         if pdf_file_name_extended in input_folder_files:
@@ -99,7 +100,7 @@ def option1():
     fileNameInput = pdf_file_name.strip(".pdf")
     
     # Create the file_location as to where we are going to put the transcript 
-    file_location = f'{os.getcwd()}\\TParser\\output_xlsx\\{fileNameInput}.xlsx'
+    file_location = f'..\\output_xlsx\\{fileNameInput}.xlsx'
 
     # Create a large dictionary that will store needed information 
     buffer_to_store = {

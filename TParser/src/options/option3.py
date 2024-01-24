@@ -1,6 +1,6 @@
 # DELETE a specific xlsx file from the backend 
 
-from backend.mongo import collection_name
+from backend.client import collection_name
 
 import requests, os 
 
