@@ -1,3 +1,5 @@
+# Distributed-A.I-Transcript-Parser
+
 This software enables users to place a PDF of their transcript, which will output an XLSX file that displays
 their graduation checklist. Note that these PDFs only work for students that are **computer science majors** or 
 **information systems majors**. 
