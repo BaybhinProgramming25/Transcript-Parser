@@ -7,17 +7,12 @@ their graduation checklist. Note that these PDFs only work for students that are
 More about the program: This program is a **CLI** based software that prompts users to input a PDF of their choosing
 for it to be **parsed**. The data that is parsed is then store onto **MongoDB** with the help of the **FastAPI** to handle user request handling as well as perform **CRUD** based operations 
 
-Note: There were some libraries used that may require downloading on the user-end using **pip install**
+# Technologies Used
 
-Modules Used:
-- threading
-- PyPDF2
-- os
-- openpyxl
-- sys
-- requests 
-- json 
-- datetime
+- Python
+- FastAPI
+- MongoDB
+- Docker
 
 How to Run The Code: 
 
