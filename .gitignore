@@ -1,2 +1,5 @@
+# Ignore venv files
 .venv
-TParser/src/__pycache__/
+
+# Ignore pycache files 
+/src/__pycache__
