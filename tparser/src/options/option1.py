@@ -100,7 +100,7 @@ def option1():
     fileNameInput = pdf_file_name.strip(".pdf")
     
     # Create the file_location as to where we are going to put the transcript 
-    file_location = f'..\\output\\{fileNameInput}.xlsx'
+    file_location = f'..\\output\{fileNameInput}.xlsx'
 
     # Create a large dictionary that will store needed information 
     buffer_to_store = {
