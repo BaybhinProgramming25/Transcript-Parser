@@ -14,7 +14,7 @@ for it to be **parsed**. The data that is parsed is then store onto **MongoDB** 
 - MongoDB
 - Docker
 
-How to Run The Code: 
+# Running The Program 
 
 1) Put any transcripts you wish to parse in the folder labeled 'input'
 
