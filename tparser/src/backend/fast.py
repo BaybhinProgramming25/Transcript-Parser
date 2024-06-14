@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from client import collection_name
+from tparser.src.mongo.mongoclient import collection_name
 
 
 # This is used to run our FastAPI Server 
