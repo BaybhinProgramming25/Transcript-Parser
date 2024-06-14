@@ -6,4 +6,4 @@ COPY ./requirements.txt /backend/requirements.txt
 
 RUN pip install -r /backend/requirements.txt 
 
-COPY ./tparser/src/backend /backend/
+COPY ./tparser/src/backend /backend/tparser 

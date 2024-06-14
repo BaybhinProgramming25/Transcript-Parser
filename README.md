@@ -27,15 +27,15 @@ for it to be **parsed**. The data that is parsed is then store onto **MongoDB** 
 python3 main.py
 ```
 
-This will give the user a command line interface with **4 options** 
+This will give the user a command line interface with **4 options:** 
 
-4) If a student wishes to **CREATE** an XLSX file, they can select **option 1**, which would prompt them
-to enter the PDF file to be parsed. After the file has been parsed, the student may choose to **UPDATE** 
-the file if it already exists 
+    If a student wishes to **CREATE** an XLSX file, they can select **option 1**, which would prompt them
+    to enter the PDF file to be parsed. After the file has been parsed, the student may choose to **UPDATE** 
+    the file if it already exists 
 
-5) If a student wishes to **GET** an XLSX file, they can select **option 2**, which would prompt them to enter 
-the name of the file that is stored on the backend. After selecting the name of the file, the file will appear in the **output** folder 
+    If a student wishes to **GET** an XLSX file, they can select **option 2**, which would prompt them to enter 
+    the name of the file that is stored on the backend. After selecting the name of the file, the file will appear in the **output** folder 
 
-6) If a student wishes to **DELETE** an XLSX file, they can select **option 3**, which would prompt them to enter the name of the file that is stored on the backend. After selecting the name of the file, not only will it delete the file on the backend, but if the file exists in the output_xlsx directory, the file will be deleted there as well.
+    If a student wishes to **DELETE** an XLSX file, they can select **option 3**, which would prompt them to enter the name of the file that is stored on the backend. After selecting the name of the file, not only will it delete the file on the backend, but if the file exists in the output_xlsx directory, the file will be deleted there as well.
 
-7) Repeat such requests until the user is satisfied. If so, the user can select **option 4** to terminate the program and close connection to the database 
+4) Repeat such requests until the user is satisfied. If so, the user can select **option 4** to terminate the program and close connection to the database 
