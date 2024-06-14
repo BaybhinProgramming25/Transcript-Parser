@@ -13,6 +13,7 @@ for it to be **parsed**. The data that is parsed is then store onto **MongoDB** 
 - FastAPI
 - MongoDB
 - Docker
+- Docker Compose 
 
 # Running The Program 
 
