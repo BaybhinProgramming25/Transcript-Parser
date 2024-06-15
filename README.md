@@ -62,6 +62,8 @@ python3 main.py
 
 This will give the user a command line interface with **4 options:** 
 
+![Log Messages](images/options.png)
+
 - **CREATE** an XLSX file, where you can select **1**, which would prompt you
     to enter the PDF file to be parsed. After the file has been parsed, you may choose to **UPDATE** 
     the file if it already exists.
