@@ -11,52 +11,70 @@ for it to be **parsed**. The data that is parsed is then store onto **MongoDB** 
 
 These are the primary technologies that were used for making the project
 
-- Python
+
+- Python (with PIP)
 - FastAPI
 - MongoDB
 - Docker
 - Docker Compose 
 
 
-# Installing the required software
+**Ensure that these are installed onto your system.** 
 
-Note that this project also requires you to have some other tools installed. Note that there will only be installations for 
-**Windows and Linux**
+Note that the installations will vary accross different operating systems, so follow
+the steps for the operating system you are currently using. 
 
-## Installing on Windows
+# (OPTIONAL) Setting up a virtual environment 
 
-1) Go to the official python website to download python
+It is **HIGHLY RECOMMENDED** to set up a virtual environemnt to isolate the dependencies that mamy differ across projects. 
+This will ensure that packages won't cause conflicts, if they were installed onto the machine directly. 
+
+
+1) Create the virtual environemnt 
+
+## On Windows 
+```
+python -m venv env
+```
+
+## Only Linux/macOS
+```
+python3 -m venv env
+```
+
+2) Activate the virtual environment 
+
+## On Windows 
+```
+.\env\Scripts\activate
+```
+
+## Only Linux/macOS
+```
+source env/bin/activate
+```
+
+You may now install the necessary packages such that it won't be install system-wide on the virtual machine 
+
+3) Deactivating the virtual environment 
+
+Once you are done working, you can turn off the virutal environment by running the following:
+```
+deactivate
+```
+
+# Installing necessary packages 
+
+Assuming you have all the technologies listed above installed, you can now run the following
 
 ```
-https://www.python.org/downloads/
+pip install -r requirements.txt 
 ```
 
-2) Run the installer 
-
-    - Open the **.exe** file 
-    - Ensure that python is added as an **environment variable** 
-    - Click on **Install Now** 
-
-3) Verify the installation
-
-    - Open up command prompt
-    - Type the following in the terminal
-    ```
-    python --version 
-    ```
-
-    This should display the version of python installed. If nothing appears **restart the entire procedure from step !**
-
-4) Install pip
+This will install of the necessary packages along with the specific versions and dependencies 
 
 
-
-
-## Installing on Linux
-
-1) 
-
-# Initializing The Server  
+# Initializing The Server
 
 Before running the main program, the program needs to set up a web server. This is so that when the user is in the main program, their transactions
 can be successful through the use of a REST API. 
