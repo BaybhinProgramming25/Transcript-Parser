@@ -138,4 +138,45 @@ This will give the user a command line interface with **4 options:**
 
 You can also run the program via docker
 
-1) 
+1) Run the following command in a terminal
+
+```
+docker-compose up --build -d 
+```
+
+This will run docker-compose and the services listed in **detached** mode. It will also **rebuild** any of the images that each of the services
+use so that any changes made to the docker files will be reflected.
+
+2) Find the container that runs the main program 
+
+Find the container with the name **transcript-parser_main_1.** You can do so by running the following command 
+
+```
+docker ps 
+``` 
+
+If the container is **NOT** running, then an error has occured in the user's end. 
+
+You can check and see which containers by running the following command:
+
+```
+docker ps -a --filter "status=exited"
+``` 
+
+3) Bash into the docker container 
+
+Assuming you have found the container and verified that it is running, run the following command to open an interactive session into the container:
+
+```
+docker exec -it CONTAINER_ID bash 
+```
+
+After doing so, you should be inside the docker container, which should show the **/app** directory.
+ 
+
+4) Run the program 
+
+```
+cd tparser/src
+python3 main.py 
+``` 
