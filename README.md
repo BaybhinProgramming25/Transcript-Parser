@@ -9,13 +9,52 @@ for it to be **parsed**. The data that is parsed is then store onto **MongoDB** 
 
 # Technologies Used
 
+These are the primary technologies that were used for making the project
+
 - Python
 - FastAPI
 - MongoDB
 - Docker
 - Docker Compose 
 
-Make sure that these software tools are installed on your machine prior 
+
+# Installing the required software
+
+Note that this project also requires you to have some other tools installed. Note that there will only be installations for 
+**Windows and Linux**
+
+## Installing on Windows
+
+1) Go to the official python website to download python
+
+```
+https://www.python.org/downloads/
+```
+
+2) Run the installer 
+
+    - Open the **.exe** file 
+    - Ensure that python is added as an **environment variable** 
+    - Click on **Install Now** 
+
+3) Verify the installation
+
+    - Open up command prompt
+    - Type the following in the terminal
+    ```
+    python --version 
+    ```
+
+    This should display the version of python installed. If nothing appears **restart the entire procedure from step !**
+
+4) Install pip
+
+
+
+
+## Installing on Linux
+
+1) 
 
 # Initializing The Server  
 
