@@ -1,6 +1,6 @@
 # GET an XLSX fie 
 
-from backend.client import collection_name
+from mongo.mongoclient import collection_name
 from tablecreator.CreateTabularDocument import createDocument
 
 from classes.UniversalClassObject import *

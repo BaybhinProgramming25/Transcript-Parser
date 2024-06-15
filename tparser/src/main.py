@@ -8,7 +8,7 @@ tabular document as an XLSX file to be sent in the output folder
 Note: This program is only meant for CSE or ISE students in the major
 """
 
-from backend.client import client 
+from mongo.mongoclient import client 
 from options import option1, option2, option3
 
 def main():
