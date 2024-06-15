@@ -15,11 +15,43 @@ for it to be **parsed**. The data that is parsed is then store onto **MongoDB** 
 - Docker
 - Docker Compose 
 
+Make sure that these software tools are installed on your machine prior 
+
+# Initializing The Server  
+
+Before running the main program, the program needs to set up a web server. This is so that when the user is in the main program, their transactions
+can be successful through the use of a REST API. 
+
+1) Start an additional terminal session 
+
+2) Within the terminal, type the following in the command line
+
+
+```
+uvicorn tparser.src.backend.fast:app --reload --port=8000 --host=0.0.0.0
+```
+
+This sets up a FastAPI server that runs on your local machine. This is needed to ensure that user requests are fullfilled through API calls. 
+
+
+Here is an example of a log message that shows the server started succesfully 
+
+
+![Log Messages](images/success-server.png)
+
+
+Once you have seen this message, you may start up the main program 
+
+
 # Running The Program 
 
 1) Put any transcripts you wish to parse in the folder labeled **input**
 
-2) Within the 'src' folder, look for the python module titled **main.py**
+2) Go to the tparser folder and then into the src folder 
+
+```
+cd tparser/src/
+```
 
 3) Run the code in the module
 
@@ -41,5 +73,10 @@ This will give the user a command line interface with **4 options:**
 
 - **EXIT** the program. wnhere you can select **4**, which would terminate the program 
 
+
 # Running The Program With Docker 
 
+
+You can also run the program via docker
+
+1) 
