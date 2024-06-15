@@ -1,0 +1,23 @@
+# Dockerfile.server
+
+# Use the official Python image from Docker Hub
+FROM python:3.11.1
+
+# Set the working directory inside the container
+WORKDIR /backend
+
+# Copy only the requirements.txt into the container
+COPY ./requirements.txt /backend/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the backend code into the container
+COPY ./tparser/src/backend/ /backend/tparser/src/backend/
+COPY ./tparser/src/mongo/ /backend/tparser/src/mongo/
+
+# Expose the port your app runs on
+EXPOSE 8000
+
+# Command to run the FastAPI server using uvicorn
+CMD ["uvicorn", "tparser.src.backend.fast:app", "--host", "0.0.0.0", "--port", "8000"]

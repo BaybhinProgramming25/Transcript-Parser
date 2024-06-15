@@ -24,7 +24,7 @@ These are the primary technologies that were used for making the project
 Note that the installations will vary accross different operating systems, so follow
 the steps for the operating system you are currently using. 
 
-# (OPTIONAL) Setting up a virtual environment 
+# (OPTIONAL) Setting up a Virtual Environment  
 
 It is **HIGHLY RECOMMENDED** to set up a virtual environemnt to isolate the dependencies that mamy differ across projects. 
 This will ensure that packages won't cause conflicts, if they were installed onto the machine directly. 
@@ -63,7 +63,7 @@ Once you are done working, you can turn off the virutal environment by running t
 deactivate
 ```
 
-# Installing necessary packages 
+# Installing Necessary Packages 
 
 Assuming you have all the technologies listed above installed, you can now run the following
 

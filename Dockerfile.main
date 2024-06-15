@@ -1,0 +1,14 @@
+# Dockerfile.main
+FROM python:3.11.1
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the requirements.txt 
+COPY ./requirements.txt /app/requirements.txt
+
+# Install the packages onto the container 
+RUN pip install --no-cache-dir -r /app/requirements.txt 
+
+# Copy the current directory contents into the container at /app
+COPY . /app

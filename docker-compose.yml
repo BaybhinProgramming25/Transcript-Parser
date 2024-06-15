@@ -1,15 +1,33 @@
-version: '3'
-
 services:
-  web:
-    build: .
-    command: "uvicorn tparser.src.backend.fast:app --reload --port=8000 --host=0.0.0.0"
+  main: 
+    tty: true 
+    command: bash 
+    build:
+      context: .
+      dockerfile: Dockerfile.main 
+    depends_on:
+      - server 
+    networks:
+      - tparser-network 
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
     ports:
-      - 8000:8000
+      - "8000:8000"
     depends_on:
       - mongo
+    networks:
+      - tparser-network 
 
   mongo:
     image: mongo:5.0
     ports:
       - 27017:27017
+    networks:
+      - tparser-network
+
+networks:
+  tparser-network:
+    driver: bridge 
